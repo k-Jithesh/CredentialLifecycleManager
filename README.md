@@ -47,23 +47,19 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 |---|---|---|
 | `schema_csv/` | Human-readable column reference for all 5 tables + option sets | n/a |
 | `solution_manifest.json` | Declarative spec consumed by `Deploy-CLMSchema.ps1` | n/a |
-| `solution/` | Empty solution shell (publisher = `clmpublisher`) | n/a |
 | `clmPlatformOps_1_0_0_1.zip` | Publisher solution (`clm` prefix) | 1.0.0.1 |
 | `CredentialLifecycleManager_1_0_0_2.zip` | Schema solution (tables, columns, choices) | 1.0.0.2 |
 | `CLMDiscoveryFlow_1_0_0_17.zip` | Discovery flow + 2 custom connectors | 1.0.0.17 |
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_4.zip` | Reminder Engine flow (Teams + email) | 1.0.0.4 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
-| `app/`, `connector/`, `flows/`, `docs/` | Source artifacts and design docs | n/a |
+| `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
 | `Add-CLMOwnerColumns.ps1` | Adds `clm_ownertag` + `clm_ownersource` columns | n/a |
 | `Add-CLMAppViews.ps1` | Creates 10 curated public views for the model-driven app | n/a |
 | `Seed-CLMOwnerRules.ps1` | Idempotent owner-rule seeder (edit `$Rules` at top) | n/a |
 | `Register-CLMDiscoveryApp.ps1` | Creates the AAD app registration + cert for the SP | n/a |
 | `Add-DelegatedPermissions.ps1` | Grants admin consent for Graph permissions | n/a |
-| `Deploy-CLMConnector.ps1` | Programmatic connector deployment (alternative to solution import) | n/a |
-| `Deploy-CLMDiscoveryFlow.ps1` | Programmatic flow deployment | n/a |
-| `Deploy-CLMApp.ps1` | Programmatic model-driven app deployment | n/a |
 
 > **Placeholders:** scripts and zips have been scrubbed of tenant-identifying values. You'll see `<TENANT_ID>`, `<CLIENT_ID>`, `<DATAVERSE_HOST>`, `<OPS_EMAIL>` — replace with your values (or pass via parameters) before running.
 
