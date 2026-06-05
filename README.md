@@ -1,104 +1,216 @@
-# Credential Lifecycle Manager — Dataverse schema
+# Credential Lifecycle Manager (CLM)
 
-This folder contains everything needed to stand up the **CLM** Dataverse schema in your customer's Power Platform Premium environment.
+A Power Platform solution that **automatically discovers, owns, and reminds on expiring secrets/certs** across Azure and Entra ID, without spreadsheets or tribal knowledge.
 
-## Contents
+## What it does
+
+- **Discovers** credentials daily from Microsoft Graph (AAD app registration passwords/keys) and Azure Resource Manager (Key Vault secrets) via two custom connectors backed by an AAD service principal
+- **Resolves owners** in priority order: Azure resource `tag.Owner` → AAD app first owner → regex/substring rules → manual. Tag changes propagate automatically (tag is source of truth)
+- **Sends reminders** to owners via Microsoft Teams DM and email on a 90/60/30/14/7/1/D0/Overdue cadence
+- **Records coverage gaps** — every subscription / vault the discovery SP can't read shows up as a triagable row with HTTP status + remediation hint
+- **Surfaces everything** in a model-driven app with curated views (Expiring 30d, Orphans, Open Gaps, My Credentials, Renewal Events timeline)
+
+## Architecture
 
 ```
-CredentialLifecycleManager/
-├── schema_csv/                       # Human-readable schema reference
-│   ├── 01_tables.csv
-│   ├── 02_clm_credential_columns.csv
-│   ├── 03_clm_discoveryrun_columns.csv
-│   ├── 04_clm_renewalevent_columns.csv
-│   ├── 05_clm_ownerrule_columns.csv
-│   ├── 06_clm_sourceenvironment_columns.csv
-│   ├── 07_option_sets.csv
-│   ├── 08_relationships.csv
-│   ├── 09_alternate_keys.csv
-│   └── 10_security_roles.csv
-├── solution/                         # Empty importable solution (publisher shell)
-│   ├── solution.xml
-│   ├── customizations.xml
-│   └── [Content_Types].xml
-├── solution_manifest.json            # Declarative spec for the deployment script
-├── Deploy-CLMSchema.ps1              # Idempotent deployment via Dataverse Web API
-└── README.md                         # This file
+┌──────────────────────┐     ┌──────────────────────┐
+│ AAD App Registration │     │ Azure Subscriptions  │
+│ (Graph permissions)  │     │ + Key Vaults         │
+└──────────┬───────────┘     └──────────┬───────────┘
+           │ daily 02:00                │ daily 02:00
+           ▼                            ▼
+┌─────────────────────────────────────────────────┐
+│  Discovery flow (CLMDiscoveryFlow)              │
+│  • Graph leg: applications + owners             │
+│  • ARM leg:   subscriptions → vaults → secrets  │
+│  • Tag capture (clm_ownertag)                   │
+│  • Coverage gap upsert on 4xx/5xx               │
+└────────────────────┬────────────────────────────┘
+                     ▼
+         ┌───────────────────────┐
+         │ clm_credential (DV)   │   ← daily 03:00
+         │ clm_renewalevent (DV) │     Owner Resolver
+         │ clm_coveragegap (DV)  │     (tag SoT + rules)
+         │ clm_ownerrule (DV)    │
+         │ clm_sourceenvironment │   ← daily 07:00
+         └─────────┬─────────────┘     Reminder Engine
+                   ▼                   (Teams + email)
+       ┌────────────────────────┐
+       │ Model-driven app:      │
+       │ Credential Lifecycle   │
+       └────────────────────────┘
 ```
 
-## Two deployment options
+## Components in this repo
 
-### Option A — Recommended: run the deployment script
+| Path | What it is | Latest version |
+|---|---|---|
+| `schema_csv/` | Human-readable column reference for all 5 tables + option sets | n/a |
+| `solution_manifest.json` | Declarative spec consumed by `Deploy-CLMSchema.ps1` | n/a |
+| `solution/` | Empty solution shell (publisher = `clmpublisher`) | n/a |
+| `clmPlatformOps_1_0_0_1.zip` | Publisher solution (`clm` prefix) | 1.0.0.1 |
+| `CredentialLifecycleManager_1_0_0_2.zip` | Schema solution (tables, columns, choices) | 1.0.0.2 |
+| `CLMDiscoveryFlow_1_0_0_17.zip` | Discovery flow + 2 custom connectors | 1.0.0.17 |
+| `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
+| `CLMReminderEngine_1_0_0_4.zip` | Reminder Engine flow (Teams + email) | 1.0.0.4 |
+| `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
+| `app/`, `connector/`, `flows/`, `docs/` | Source artifacts and design docs | n/a |
+| `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
+| `Add-CLMOwnerColumns.ps1` | Adds `clm_ownertag` + `clm_ownersource` columns | n/a |
+| `Add-CLMAppViews.ps1` | Creates 10 curated public views for the model-driven app | n/a |
+| `Seed-CLMOwnerRules.ps1` | Idempotent owner-rule seeder (edit `$Rules` at top) | n/a |
+| `Register-CLMDiscoveryApp.ps1` | Creates the AAD app registration + cert for the SP | n/a |
+| `Add-DelegatedPermissions.ps1` | Grants admin consent for Graph permissions | n/a |
+| `Deploy-CLMConnector.ps1` | Programmatic connector deployment (alternative to solution import) | n/a |
+| `Deploy-CLMDiscoveryFlow.ps1` | Programmatic flow deployment | n/a |
+| `Deploy-CLMApp.ps1` | Programmatic model-driven app deployment | n/a |
 
-Creates everything (publisher, solution, tables, columns, choices, relationships, alternate keys) via the Dataverse Web API. Idempotent — safe to re-run.
+> **Placeholders:** scripts and zips have been scrubbed of tenant-identifying values. You'll see `<TENANT_ID>`, `<CLIENT_ID>`, `<DATAVERSE_HOST>`, `<OPS_EMAIL>` — replace with your values (or pass via parameters) before running.
+
+## Prerequisites
+
+- A Power Platform **Premium** environment (custom connectors + premium flows)
+- An AAD account with **System Customizer** (or System Admin) in that Dataverse env
+- An AAD account that can create **app registrations** in your tenant
+- An Azure subscription where the discovery SP will be granted RBAC (Key Vault Reader at minimum)
+- PowerShell 7+ on the deploying machine (`Az.Accounts` module — auto-installed)
+
+## Deployment order (one-time)
+
+> Replace `https://<DATAVERSE_HOST>` with your env URL throughout.
+
+### 1. Deploy schema (5 tables + option sets + alt keys)
 
 ```powershell
-# From this folder
-pwsh ./Deploy-CLMSchema.ps1 -EnvironmentUrl https://YOUR-ORG.crm6.dynamics.com
+pwsh ./Deploy-CLMSchema.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
 ```
 
-Requirements:
-- PowerShell 7+
-- `Az.Accounts` (auto-installed if missing)
-- The signing-in user must hold **System Customizer** or **System Administrator** in the target Dataverse environment.
+Then in the maker portal:
+- Open the **clm_credential** table → **+ New column** → Name `clm_daysuntilexpiry`, Type **Formula**, formula: `DiffInDays(Now(), 'Credential'.clm_expirydate)`. (Calculated columns can't be created cleanly via Web API.)
 
-The script will:
-1. Sign you in interactively to Azure AD.
-2. Acquire a Dataverse token for the supplied environment URL.
-3. Create the `clmpublisher` publisher.
-4. Create the `CredentialLifecycleManager` (unmanaged) solution.
-5. Create the 8 global option sets.
-6. Create the 5 tables and their columns.
-7. Create the 9 relationships (lookups to user/team/credential/sourceenvironment).
-8. Create the 2 alternate keys for upsert.
-
-Security roles are not created by the script — they're easier and safer to create in the maker portal using `schema_csv/10_security_roles.csv` as the reference.
-
-### Option B — Import the empty solution, then run the script
-
-If you must demonstrate a solution import in the UI first, zip the `solution/` folder contents into `CredentialLifecycleManager.zip`, import it via **Solutions > Import**, then run `Deploy-CLMSchema.ps1`. The script will detect the existing solution and only add tables/columns to it.
+### 2. Add the tag / ownersource columns
 
 ```powershell
-Compress-Archive -Path solution/* -DestinationPath CredentialLifecycleManager.zip -Force
+pwsh ./Add-CLMOwnerColumns.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
 ```
 
-## Object-naming conventions
+### 3. Register the Discovery AAD app + grant permissions
 
-| Object        | Convention                | Example                              |
-|---------------|---------------------------|--------------------------------------|
-| Publisher prefix | `clm`                  | `clm_credential`                     |
-| Option set    | `clm_<purpose>`           | `clm_sourcesystem`                   |
-| Table         | `clm_<noun>`              | `clm_credential`                     |
-| Lookup column | `clm_<role>`              | `clm_owneruser`, `clm_environmentref`|
-| Alternate key | `clm_<table>_<col>_key`   | `clm_credential_externalid_key`      |
+```powershell
+pwsh ./Register-CLMDiscoveryApp.ps1 -DataverseEnvironmentUrl https://<DATAVERSE_HOST>
+pwsh ./Add-DelegatedPermissions.ps1
+```
 
-## What the schema covers
+Required Graph permissions (Application): `Application.Read.All`, `Organization.Read.All`.
+Required Azure RBAC: `Reader` on subscriptions you want scanned, plus `Key Vault Reader` (or equivalent) on each vault.
 
-- **`clm_credential`** — one row per discovered secret/cert/key. Upsert via `clm_externalid`.
-- **`clm_sourceenvironment`** — scopes that discovery flows scan (PP envs, Azure subs, tenants, Key Vaults).
-- **`clm_coveragegap`** — every scope the discovery identity could **not** enumerate, with HTTP status, error detail, auto-generated remediation hint and triage state. Closes the "silent miss" hole: a vault we can't read still shows up.
-- **`clm_discoveryrun`** — audit log of each discovery flow execution.
-- **`clm_renewalevent`** — append-only history (Discovered, ReminderSent, Claimed, Renewed, …).
-- **`clm_ownerrule`** — regex-based fallback owner assignment when source has no owner set.
+Add the resulting client ID as a **Dataverse Application User** with role `CLM Platform Ops` (see prompt printed by the script).
 
-See **`docs/RBAC_AND_COVERAGE.md`** for the full RBAC matrix the Discovery SP needs and how each missing permission maps to a `clm_coveragegap` row.
+### 4. Import the publisher and schema solutions
 
-See **`docs/DISCOVERY_FLOW_PATTERN.md`** for the canonical discovery-flow pseudocode and a drop-in Power Automate JSON sketch implementing the gap-upsert pattern.
+In https://make.powerapps.com → target env → Solutions → Import:
+- `clmPlatformOps_1_0_0_1.zip`
+- `CredentialLifecycleManager_1_0_0_2.zip`
 
-## Notes on the calculated column
+### 5. Custom connectors
 
-`clm_daysuntilexpiry` is intentionally **not** created by the script — Dataverse calculated columns can't be defined cleanly via the Web API in this version. Add it via the maker portal after import:
+When you import `CLMDiscoveryFlow_1_0_0_17.zip` in step 7, the two custom connectors land automatically. **Before** importing the flow, however:
 
-- Table: `Credential`
-- New column → Data type **Whole Number**, Behaviour **Calculated**
-- Formula: `DiffInDays(Now(), clm_expirydate)`
-- If using Formula data type, use - `DateDiff('Expiry Date', Now(),TimeUnit.Days)`
+1. Open each new custom connector → **Security** tab → paste the Discovery app's **Client Secret** (or upload the cert if using cert auth) → **Update connector**
+2. Add the connector's **Redirect URL** to the AAD app's **Authentication** blade (typically `https://global.consent.azure-apim.net/redirect`)
+3. **Connections** (left rail) → **+ New connection** → create one connection per custom connector + one for Microsoft Dataverse + one for Microsoft Teams
 
-## Next steps after schema deployment
+### 6. Pre-create connection references
 
-1. Create the 3 security roles from `schema_csv/10_security_roles.csv`.
-2. Provision the AAD app registration for the **CLM Graph & Azure** custom connector (cert auth).
-3. Import the custom connector (separate deliverable).
-4. Import the 6 discovery cloud flows + reminder engine flow + owner-resolver child flow (separate deliverable).
-5. Import the model-driven app `Credential Lifecycle` (separate deliverable).
-6. Seed `clm_sourceenvironment` with the scopes to scan and `clm_ownerrule` with starter rules.
+Solutions → CLMDiscoveryFlow (or any solution) → **+ New** → **More** → **Connection reference**:
+- `clm_dataverse` → Dataverse connection
+- `clm_clmazurediscovery` → clmarmdiscovery connection
+- `clm_clmgraphdiscovery` → clmgraphdiscovery connection
+- `clm_teams` → Teams connection (for reminder engine)
+
+### 7. Import the three flow solutions
+
+Solutions → Import (in order):
+1. `CLMDiscoveryFlow_1_0_0_17.zip` — bind the 3 connection refs when prompted
+2. `CLMOwnerResolver_1_0_0_5.zip` — binds `clm_dataverse`
+3. `CLMReminderEngine_1_0_0_4.zip` — binds `clm_dataverse` + `clm_teams`
+
+After each import, open the flow and **Turn on**.
+
+### 8. (Optional) Create the env variable for the Reminder fallback email
+
+Solutions → CLMReminderEngine → **+ New** → **More** → **Environment variable**:
+- Name (schema): `clm_platformopsemail`
+- Type: Text
+- Default: your ops alias
+
+If you skip this, the flow falls back to the hard-coded `<OPS_EMAIL>` literal.
+
+### 9. Seed the SYSTEM credential and starter rules
+
+In Power Apps → Tables → Credential → **+ New row**: `clm_name = "SYSTEM"` (used by flows for leg-level failure events).
+
+```powershell
+# Edit $Rules at the top of this script first
+pwsh ./Seed-CLMOwnerRules.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
+```
+
+### 10. Create the model-driven app
+
+```powershell
+pwsh ./Add-CLMAppViews.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
+```
+
+Then in the maker portal:
+1. **+ New → App → Model-driven app** → name `Credential Lifecycle`
+2. **+ Add page → Dataverse table** → add (with Show in navigation):
+   - `clm_credential` (set as **Home**)
+   - `clm_renewalevent`, `clm_ownerrule`, `clm_sourceenvironment`, `clm_coveragegap`
+3. **Save → Publish**
+4. (Optional) **Navigation** → switch to XML mode → paste contents of `CLMApp_Sitemap.xml`
+
+### 11. First run
+
+- **Discovery-CLMCredentials** → Run on demand. Credential rows appear; `clm_ownertag` populated from Azure tags / AAD owners; gaps recorded for any unreadable scopes
+- **OwnerResolver-CLMCredentials** → Run. Tag-driven owners assigned, then rule fallback fires
+- **Reminder-CLMCredentials** → Run. Owners with credentials expiring in ≤ 90 days get a Teams DM + email
+
+## Daily schedule (AUS Eastern)
+
+| Time | Flow | Purpose |
+|---|---|---|
+| 02:00 | Discovery | Pulls AAD + ARM credentials, populates tags, records gaps |
+| 03:00 | Owner Resolver | Assigns owners from tag → rule, writes audit events |
+| 07:00 | Reminder Engine | DMs owners on D90/60/30/14/7/1/D0/Overdue buckets |
+
+## How to extend
+
+### Add a new discovery source
+1. Add the connector definition + operation to `connector/`
+2. Update Discovery flow with a new Leg scope using the same upsert pattern: `Lookup by clm_externalid → If exists Update else Create`
+3. Wrap in `Try_*` / `Catch_*` for coverage-gap recording (see ARM_Leg as template)
+
+### Add a new reminder bucket
+Edit the bucket priority list in the Reminder Engine flow's `Compose_TargetBucket` action. Bucket priority is descending (Overdue > D0 > … > D90).
+
+### Add a custom owner-resolution scope
+Add an entry to `clm_matchscope` option set + update Owner Resolver's `Filter_Matching_Rules` `where` expression to evaluate the new scope.
+
+### Lock an owner against auto-reassignment
+Set `clm_ownerlocked = true` on the credential row. Both Owner Resolver and Reminder Engine respect this.
+
+## Schema reference
+
+| Table | Purpose | Key columns |
+|---|---|---|
+| `clm_credential` | One row per discovered secret / cert / key | `clm_externalid` (alt key), `clm_status`, `clm_expirydate`, `clm_daysuntilexpiry`, `clm_owneruser`, `clm_ownertag`, `clm_ownersource`, `clm_ownerlocked`, `clm_remindersent` |
+| `clm_sourceenvironment` | Scopes that discovery scans (PP envs, subs, tenants, KVs) | `clm_externalid` (alt key), `clm_scopetype`, `clm_isenabled` |
+| `clm_coveragegap` | Every scope discovery couldn't enumerate, with HTTP detail | `clm_externalid` (alt key), `clm_gaptype`, `clm_status`, `clm_lasthttpstatus`, `clm_resolutionhint` |
+| `clm_renewalevent` | Append-only history (Discovered, ReminderSent, Reassigned, MarkedOrphaned, …) | `clm_action`, `clm_credentialid`, `clm_occurredon` |
+| `clm_ownerrule` | Regex/substring-based fallback ownership rules | `clm_priority`, `clm_matchscope`, `clm_matchpattern`, `clm_isactive`, `clm_matchcount` |
+
+See `schema_csv/` for full column lists, and `docs/RBAC_AND_COVERAGE.md` for the SP RBAC matrix.
+
+## License
+
+Internal MS use — adapt freely. Customer deliverables may require separate licensing review.
