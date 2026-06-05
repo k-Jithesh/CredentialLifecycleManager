@@ -163,7 +163,9 @@ Then in the maker portal:
    - `clm_credential` (set as **Home**)
    - `clm_renewalevent`, `clm_ownerrule`, `clm_sourceenvironment`, `clm_coveragegap`
 3. **Save → Publish**
-4. (Optional) **Navigation** → switch to XML mode → paste contents of `CLMApp_Sitemap.xml`
+4. (Optional) Sitemap customisation. The modern app designer **does not expose XML mode**, so use one of:
+   - Edit groups/areas via the **Navigation** pane in the modern designer (drag/drop)
+   - OR use the **classic solution explorer**: Solutions → your solution → **Site Map** component → Edit → Show XML → paste contents of `CLMApp_Sitemap.xml`
 
 ### 11. First run
 
