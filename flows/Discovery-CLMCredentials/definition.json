@@ -1,0 +1,388 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "triggers": {
+    "Daily_at_0200": {
+      "type": "Recurrence",
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "schedule": { "hours": [ 2 ], "minutes": [ 0 ] },
+        "timeZone": "AUS Eastern Standard Time"
+      }
+    }
+  },
+  "actions": {
+
+    "Init_RenewalWindowDays": {
+      "type": "InitializeVariable",
+      "inputs": { "variables": [ { "name": "RenewalWindowDays", "type": "Integer", "value": 30 } ] },
+      "runAfter": {}
+    },
+    "Init_DiscoveryRunId": {
+      "type": "InitializeVariable",
+      "inputs": { "variables": [ { "name": "DiscoveryRunId", "type": "String", "value": "@{guid()}" } ] },
+      "runAfter": { "Init_RenewalWindowDays": [ "Succeeded" ] }
+    },
+
+    "Get_System_Credential": {
+      "type": "OpenApiConnection",
+      "runAfter": { "Init_DiscoveryRunId": [ "Succeeded" ] },
+      "inputs": {
+        "host": {
+          "connectionName": "shared_commondataserviceforapps",
+          "operationId":    "ListRecords",
+          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName": "clm_credentials",
+          "$filter":    "clm_name eq 'SYSTEM'",
+          "$select":    "clm_credentialid",
+          "$top":       1
+        }
+      },
+      "description": "Lookup of the sentinel SYSTEM credential used as the parent for leg-level failure events. Create one row in clm_credential with clm_name='SYSTEM' before turning this flow on."
+    },
+
+    "Graph_Leg": {
+      "type": "Scope",
+      "runAfter": { "Get_System_Credential": [ "Succeeded" ] },
+      "actions": {
+
+        "List_Applications": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_clm-5fclmgraphdiscovery-5fd26832dc2718bb74",
+              "operationId":    "ListApplications",
+              "apiId":          "/providers/Microsoft.PowerApps/apis/shared_clm-5fclmgraphdiscovery-5fd26832dc2718bb74"
+            },
+            "parameters": {
+              "$select": "id,appId,displayName,passwordCredentials,keyCredentials",
+              "$top":    100
+            }
+          }
+        },
+
+        "For_each_Application": {
+          "type": "Foreach",
+          "foreach": "@body('List_Applications')?['value']",
+          "runAfter": { "List_Applications": [ "Succeeded" ] },
+          "actions": {
+
+            "For_each_PasswordCredential": {
+              "type": "Foreach",
+              "foreach": "@items('For_each_Application')?['passwordCredentials']",
+              "actions": {
+                "Create_Secret_Credential": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId":    "CreateRecord",
+                      "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName":                "clm_credentials",
+                      "item/clm_name":             "@{concat(items('For_each_Application')?['displayName'], ' - ', coalesce(items('For_each_PasswordCredential')?['displayName'], 'secret'))}",
+                      "item/clm_externalid":       "@{concat('aad:app:', items('For_each_Application')?['appId'], ':secret:', items('For_each_PasswordCredential')?['keyId'])}",
+                      "item/clm_displayname":      "@{concat(items('For_each_Application')?['displayName'], ' - ', coalesce(items('For_each_PasswordCredential')?['displayName'], 'secret'))}",
+                      "item/clm_sourcesystem":     100000000,
+                      "item/clm_credentialtype":   200000000,
+                      "item/clm_status":           300000000,
+                      "item/clm_expirydate":       "@{items('For_each_PasswordCredential')?['endDateTime']}",
+                      "item/clm_sourceportalurl":  "@{concat('https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Credentials/appId/', items('For_each_Application')?['appId'])}",
+                      "item/clm_lastdiscoveredon": "@{utcNow()}",
+                      "item/clm_objectid":         "@{items('For_each_Application')?['appId']}",
+                      "item/clm_keyid":            "@{items('For_each_PasswordCredential')?['keyId']}"
+                    }
+                  }
+                },
+                "If_Expiring_Soon_Secret": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      { "lessOrEquals": [ "@div(sub(ticks(items('For_each_PasswordCredential')?['endDateTime']), ticks(utcNow())), 864000000000)", "@variables('RenewalWindowDays')" ] }
+                    ]
+                  },
+                  "runAfter": { "Create_Secret_Credential": [ "Succeeded" ] },
+                  "actions": {
+                    "Create_Renewal_Event_Secret": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId":    "CreateRecord",
+                          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName":                       "clm_renewalevents",
+                          "item/clm_name":                    "@{concat('Discovered - ', items('For_each_Application')?['displayName'], ' - ', utcNow())}",
+                          "item/clm_action":                  600000000,
+                          "item/clm_actorisflow":             true,
+                          "item/clm_occurredon":              "@{utcNow()}",
+                          "item/clm_notes":                   "@{concat('Expiring secret: ', items('For_each_Application')?['displayName'], ' (DiscoveryRunId=', variables('DiscoveryRunId'), ')')}",
+                          "item/clm_payload":                 "@{string(items('For_each_PasswordCredential'))}",
+                          "item/clm_credentialid@odata.bind": "@{concat('/clm_credentials(', body('Create_Secret_Credential')?['clm_credentialid'], ')')}"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+
+            "For_each_KeyCredential": {
+              "type": "Foreach",
+              "foreach": "@items('For_each_Application')?['keyCredentials']",
+              "runAfter": { "For_each_PasswordCredential": [ "Succeeded", "Skipped" ] },
+              "actions": {
+                "Create_Cert_Credential": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId":    "CreateRecord",
+                      "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName":                "clm_credentials",
+                      "item/clm_name":             "@{concat(items('For_each_Application')?['displayName'], ' - ', coalesce(items('For_each_KeyCredential')?['displayName'], 'cert'))}",
+                      "item/clm_externalid":       "@{concat('aad:app:', items('For_each_Application')?['appId'], ':cert:', items('For_each_KeyCredential')?['keyId'])}",
+                      "item/clm_displayname":      "@{concat(items('For_each_Application')?['displayName'], ' - ', coalesce(items('For_each_KeyCredential')?['displayName'], 'cert'))}",
+                      "item/clm_sourcesystem":     100000000,
+                      "item/clm_credentialtype":   200000001,
+                      "item/clm_status":           300000000,
+                      "item/clm_expirydate":       "@{items('For_each_KeyCredential')?['endDateTime']}",
+                      "item/clm_sourceportalurl":  "@{concat('https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/Credentials/appId/', items('For_each_Application')?['appId'])}",
+                      "item/clm_lastdiscoveredon": "@{utcNow()}",
+                      "item/clm_objectid":         "@{items('For_each_Application')?['appId']}",
+                      "item/clm_keyid":            "@{items('For_each_KeyCredential')?['keyId']}"
+                    }
+                  }
+                },
+                "If_Expiring_Soon_Cert": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      { "lessOrEquals": [ "@div(sub(ticks(items('For_each_KeyCredential')?['endDateTime']), ticks(utcNow())), 864000000000)", "@variables('RenewalWindowDays')" ] }
+                    ]
+                  },
+                  "runAfter": { "Create_Cert_Credential": [ "Succeeded" ] },
+                  "actions": {
+                    "Create_Renewal_Event_Cert": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId":    "CreateRecord",
+                          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName":                       "clm_renewalevents",
+                          "item/clm_name":                    "@{concat('Discovered - ', items('For_each_Application')?['displayName'], ' - ', utcNow())}",
+                          "item/clm_action":                  600000000,
+                          "item/clm_actorisflow":             true,
+                          "item/clm_occurredon":              "@{utcNow()}",
+                          "item/clm_notes":                   "@{concat('Expiring certificate: ', items('For_each_Application')?['displayName'], ' (DiscoveryRunId=', variables('DiscoveryRunId'), ')')}",
+                          "item/clm_payload":                 "@{string(items('For_each_KeyCredential'))}",
+                          "item/clm_credentialid@odata.bind": "@{concat('/clm_credentials(', body('Create_Cert_Credential')?['clm_credentialid'], ')')}"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "ARM_Leg": {
+      "type": "Scope",
+      "runAfter": { "Get_System_Credential": [ "Succeeded" ] },
+      "actions": {
+
+        "List_Subscriptions": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74",
+              "operationId":    "ListSubscriptions",
+              "apiId":          "/providers/Microsoft.PowerApps/apis/shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74"
+            },
+            "parameters": { "api-version": "2022-12-01" }
+          }
+        },
+
+        "For_each_Subscription": {
+          "type": "Foreach",
+          "foreach": "@body('List_Subscriptions')?['value']",
+          "runAfter": { "List_Subscriptions": [ "Succeeded" ] },
+          "actions": {
+
+            "List_KeyVaults": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74",
+                  "operationId":    "ListKeyVaults",
+                  "apiId":          "/providers/Microsoft.PowerApps/apis/shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74"
+                },
+                "parameters": {
+                  "subscriptionId": "@items('For_each_Subscription')?['subscriptionId']",
+                  "api-version":    "2023-07-01"
+                }
+              }
+            },
+
+            "For_each_Vault": {
+              "type": "Foreach",
+              "foreach": "@body('List_KeyVaults')?['value']",
+              "runAfter": { "List_KeyVaults": [ "Succeeded" ] },
+              "actions": {
+
+                "Parse_Vault_Id": {
+                  "type": "Compose",
+                  "inputs": {
+                    "resourceGroupName": "@{split(items('For_each_Vault')?['id'], '/')[4]}",
+                    "vaultName":         "@{items('For_each_Vault')?['name']}",
+                    "subscriptionId":    "@items('For_each_Subscription')?['subscriptionId']"
+                  }
+                },
+
+                "List_Vault_Secrets": {
+                  "type": "OpenApiConnection",
+                  "runAfter": { "Parse_Vault_Id": [ "Succeeded" ] },
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74",
+                      "operationId":    "ListVaultSecrets",
+                      "apiId":          "/providers/Microsoft.PowerApps/apis/shared_clm-5fclmarmdiscovery-5fd26832dc2718bb74"
+                    },
+                    "parameters": {
+                      "subscriptionId":    "@outputs('Parse_Vault_Id')['subscriptionId']",
+                      "resourceGroupName": "@outputs('Parse_Vault_Id')['resourceGroupName']",
+                      "vaultName":         "@outputs('Parse_Vault_Id')['vaultName']",
+                      "api-version":       "2023-07-01"
+                    }
+                  }
+                },
+
+                "For_each_Vault_Secret": {
+                  "type": "Foreach",
+                  "foreach": "@body('List_Vault_Secrets')?['value']",
+                  "runAfter": { "List_Vault_Secrets": [ "Succeeded" ] },
+                  "actions": {
+                    "Create_Vault_Secret": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId":    "CreateRecord",
+                          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName":                "clm_credentials",
+                          "item/clm_name":             "@{concat(items('For_each_Vault')?['name'], '/', items('For_each_Vault_Secret')?['name'])}",
+                          "item/clm_externalid":       "@{concat('kv:', items('For_each_Vault')?['id'], ':secret:', items('For_each_Vault_Secret')?['name'])}",
+                          "item/clm_displayname":      "@{concat(items('For_each_Vault')?['name'], '/', items('For_each_Vault_Secret')?['name'])}",
+                          "item/clm_sourcesystem":     100000002,
+                          "item/clm_credentialtype":   200000000,
+                          "item/clm_status":           300000000,
+                          "item/clm_expirydate":       "@{if(equals(items('For_each_Vault_Secret')?['properties']?['attributes']?['exp'], null), null, addSeconds('1970-01-01T00:00:00Z', items('For_each_Vault_Secret')?['properties']?['attributes']?['exp']))}",
+                          "item/clm_sourceportalurl":  "@{concat('https://portal.azure.com/#@', '/resource', items('For_each_Vault')?['id'], '/secrets')}",
+                          "item/clm_lastdiscoveredon": "@{utcNow()}",
+                          "item/clm_objectid":         "@{items('For_each_Vault_Secret')?['name']}",
+                          "item/clm_environment":      "@{outputs('Parse_Vault_Id')['subscriptionId']}"
+                        }
+                      }
+                    },
+                    "If_Vault_Secret_Expiring": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          { "not": { "equals": [ "@items('For_each_Vault_Secret')?['properties']?['attributes']?['exp']", null ] } },
+                          { "lessOrEquals": [ "@div(sub(mul(items('For_each_Vault_Secret')?['properties']?['attributes']?['exp'], 10000000), sub(ticks(utcNow()), ticks('1970-01-01T00:00:00Z'))), 864000000000)", "@variables('RenewalWindowDays')" ] }
+                        ]
+                      },
+                      "runAfter": { "Create_Vault_Secret": [ "Succeeded" ] },
+                      "actions": {
+                        "Create_Renewal_Event_Vault_Secret": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId":    "CreateRecord",
+                              "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName":                       "clm_renewalevents",
+                              "item/clm_name":                    "@{concat('Discovered - ', items('For_each_Vault')?['name'], '/', items('For_each_Vault_Secret')?['name'], ' - ', utcNow())}",
+                              "item/clm_action":                  600000000,
+                              "item/clm_actorisflow":             true,
+                              "item/clm_occurredon":              "@{utcNow()}",
+                              "item/clm_notes":                   "@{concat('Expiring Key Vault secret: ', items('For_each_Vault')?['name'], '/', items('For_each_Vault_Secret')?['name'], ' (DiscoveryRunId=', variables('DiscoveryRunId'), ')')}",
+                              "item/clm_payload":                 "@{string(items('For_each_Vault_Secret'))}",
+                              "item/clm_credentialid@odata.bind": "@{concat('/clm_credentials(', body('Create_Vault_Secret')?['clm_credentialid'], ')')}"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "Handle_Graph_Leg_Failure": {
+      "type": "OpenApiConnection",
+      "runAfter": { "Graph_Leg": [ "Failed", "TimedOut" ] },
+      "inputs": {
+        "host": {
+          "connectionName": "shared_commondataserviceforapps",
+          "operationId":    "CreateRecord",
+          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName":                  "clm_renewalevents",
+          "item/clm_credentialid@odata.bind": "/clm_credentials(@{first(outputs('Get_System_Credential')?['body/value'])?['clm_credentialid']})",
+          "item/clm_name":               "@{concat('DiscoveryFailed - Graph - ', utcNow())}",
+          "item/clm_action":             600000009,
+          "item/clm_actorisflow":        true,
+          "item/clm_occurredon":         "@{utcNow()}",
+          "item/clm_notes":              "@{concat('Graph leg failed during CLM discovery (DiscoveryRunId=', variables('DiscoveryRunId'), ')')}",
+          "item/clm_payload":            "@{string(result('Graph_Leg'))}"
+        }
+      }
+    },
+
+    "Handle_ARM_Leg_Failure": {
+      "type": "OpenApiConnection",
+      "runAfter": { "ARM_Leg": [ "Failed", "TimedOut" ] },
+      "inputs": {
+        "host": {
+          "connectionName": "shared_commondataserviceforapps",
+          "operationId":    "CreateRecord",
+          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+        },
+        "parameters": {
+          "entityName":                  "clm_renewalevents",
+          "item/clm_credentialid@odata.bind": "/clm_credentials(@{first(outputs('Get_System_Credential')?['body/value'])?['clm_credentialid']})",
+          "item/clm_name":               "@{concat('DiscoveryFailed - ARM - ', utcNow())}",
+          "item/clm_action":             600000009,
+          "item/clm_actorisflow":        true,
+          "item/clm_occurredon":         "@{utcNow()}",
+          "item/clm_notes":              "@{concat('ARM leg failed during CLM discovery (DiscoveryRunId=', variables('DiscoveryRunId'), ')')}",
+          "item/clm_payload":            "@{string(result('ARM_Leg'))}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+<!--
+  CLMApp Site Map - paste into the Sitemap designer "Switch to classic" / XML mode
+  inside your Model-Driven App designer.
+
+  Groups:
+    Triage      - the daily hit-list (expiring, expired, orphans)
+    Browse      - full inventory + my view
+    Audit       - renewal events, coverage gaps
+    Admin       - rules, source environments
+
+  Each subarea.entity references the logical table name.
+  Edit titles/icons as desired.
+-->
+<SiteMap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Area Id="CLMArea" Title="Credential Lifecycle" ShowGroups="true">
+
+    <Group Id="CLMGrp_Triage" Title="Triage">
+      <SubArea Id="CLMSA_Expiring30"   Entity="clm_credential" />
+      <SubArea Id="CLMSA_Expiring7"    Entity="clm_credential" />
+      <SubArea Id="CLMSA_Expired"      Entity="clm_credential" />
+      <SubArea Id="CLMSA_Orphans"      Entity="clm_credential" />
+    </Group>
+
+    <Group Id="CLMGrp_Browse" Title="Browse">
+      <SubArea Id="CLMSA_AllActive"    Entity="clm_credential" />
+      <SubArea Id="CLMSA_MyCreds"      Entity="clm_credential" />
+    </Group>
+
+    <Group Id="CLMGrp_Audit" Title="Audit">
+      <SubArea Id="CLMSA_Events"       Entity="clm_renewalevent" />
+      <SubArea Id="CLMSA_Gaps"         Entity="clm_coveragegap" />
+    </Group>
+
+    <Group Id="CLMGrp_Admin" Title="Admin">
+      <SubArea Id="CLMSA_Rules"        Entity="clm_ownerrule" />
+      <SubArea Id="CLMSA_Scopes"       Entity="clm_sourceenvironment" />
+    </Group>
+
+  </Area>
+</SiteMap>

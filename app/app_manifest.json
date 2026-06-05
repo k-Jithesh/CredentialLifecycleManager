@@ -1,0 +1,87 @@
+{
+  "$schema": "./app_manifest.schema.json",
+  "solution": {
+    "uniqueName": "CredentialLifecycleManager"
+  },
+  "app": {
+    "uniqueName": "clm_CLMConsole",
+    "name": "Credential Lifecycle Manager",
+    "description": "Console for browsing and managing tracked credentials, discovery runs and coverage gaps.",
+    "clientType": 4,
+    "appType": 1,
+    "navigationType": 1
+  },
+  "siteMap": {
+    "uniqueName": "clm_CLMConsole_sitemap",
+    "displayName": "CLM Console",
+    "xmlFile": "sitemap.xml"
+  },
+  "appIcon": {
+    "name": "clm_/icons/app_icon.svg",
+    "displayName": "CLM App Icon",
+    "type": 11,
+    "file": "icons/app_icon.svg"
+  },
+  "components": [
+    { "type": "entity", "logicalName": "clm_credential" }
+  ],
+  "views": [
+    {
+      "entity": "clm_credential",
+      "uniqueName": "clm_credential_active",
+      "displayName": "Active Credentials",
+      "description": "Credentials currently in Active state. Default view for the app.",
+      "queryType": 0,
+      "isDefault": true,
+      "isCustomizable": true,
+      "fetchFile": "views/clm_credential_active.fetchxml",
+      "layoutFile": "views/clm_credential_list.layoutxml"
+    },
+    {
+      "entity": "clm_credential",
+      "uniqueName": "clm_credential_expiring30",
+      "displayName": "Expiring in 30 days",
+      "description": "Active credentials with expiry within the next 30 days.",
+      "queryType": 0,
+      "isCustomizable": true,
+      "fetchFile": "views/clm_credential_expiring30.fetchxml",
+      "layoutFile": "views/clm_credential_list.layoutxml"
+    },
+    {
+      "entity": "clm_credential",
+      "uniqueName": "clm_credential_expired",
+      "displayName": "Expired Credentials",
+      "description": "Credentials past their expiry date.",
+      "queryType": 0,
+      "isCustomizable": true,
+      "fetchFile": "views/clm_credential_expired.fetchxml",
+      "layoutFile": "views/clm_credential_list.layoutxml"
+    }
+  ],
+  "charts": [
+    {
+      "entity": "clm_credential",
+      "uniqueName": "clm_credential_by_status",
+      "displayName": "Credentials by status",
+      "description": "Count of credentials grouped by lifecycle status.",
+      "fetchFile": "charts/clm_credential_by_status.fetchxml",
+      "presentationFile": "charts/clm_credential_by_status.presentation.xml"
+    },
+    {
+      "entity": "clm_discoveryrun",
+      "uniqueName": "clm_discoveryrun_outcomes",
+      "displayName": "Discovery runs (last 30 days)",
+      "description": "Discovery run outcomes for the last 30 days.",
+      "fetchFile": "charts/clm_discoveryrun_outcomes.fetchxml",
+      "presentationFile": "charts/clm_discoveryrun_outcomes.presentation.xml"
+    },
+    {
+      "entity": "clm_coveragegap",
+      "uniqueName": "clm_coveragegap_by_type",
+      "displayName": "Open coverage gaps by type",
+      "description": "Open coverage gaps grouped by gap type.",
+      "fetchFile": "charts/clm_coveragegap_by_type.fetchxml",
+      "presentationFile": "charts/clm_coveragegap_by_type.presentation.xml"
+    }
+  ]
+}

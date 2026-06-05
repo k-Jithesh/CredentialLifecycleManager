@@ -1,0 +1,10 @@
+SchemaName,DisplayName,DataType,RequiredLevel,MaxLength,Precision,IsPrimaryName,Description
+clm_name,Rule Name,SingleLineOfText,ApplicationRequired,200,,Yes,"Human-readable rule name."
+clm_priority,Priority,WholeNumber,ApplicationRequired,,0,No,"Lower number wins. Evaluated in ascending order."
+clm_matchscope,Match Scope,Choice,ApplicationRequired,,,No,"What field to evaluate. Option set: clm_matchscope. Values: DisplayName, Tag, Environment, KeyVaultName, ResourceGroup."
+clm_matchpattern,Match Pattern,SingleLineOfText,ApplicationRequired,500,,No,"Regex evaluated against the match scope value."
+clm_assigntoteam,Assign To Team,Lookup,Recommended,,,No,"Team this rule assigns ownership to."
+clm_assigntouser,Assign To User,Lookup,Optional,,,No,"Optional user assignment."
+clm_isactive,Active,TwoOptions,ApplicationRequired,,,No,"Whether the rule participates in evaluation."
+clm_lastmatchedon,Last Matched On,DateTime,Optional,,,No,"For rule-health reporting."
+clm_matchcount,Match Count,WholeNumber,Optional,,0,No,"Total times this rule has matched."

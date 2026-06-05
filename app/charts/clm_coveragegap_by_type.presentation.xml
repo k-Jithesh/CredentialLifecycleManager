@@ -1,0 +1,14 @@
+<Chart Palette="BrightPastel">
+  <Series>
+    <Series ChartType="Pie" IsValueShownAsLabel="True" LabelForeColor="255, 255, 255" Font="{0}, 9.5px" CustomProperties="PieLabelStyle=Inside, DoughnutRadius=60, CollectedSliceExploded=true" />
+  </Series>
+  <ChartAreas>
+    <ChartArea BorderColor="White" BorderDashStyle="Solid" />
+  </ChartAreas>
+  <Titles>
+    <Title Alignment="TopLeft" DockingOffset="-3" Font="{0}, 13px" ForeColor="0, 0, 0" Text="Open coverage gaps by type" />
+  </Titles>
+  <Legends>
+    <Legend Alignment="Center" Docking="Right" Font="{0}, 10.5px" ForeColor="59, 59, 59" />
+  </Legends>
+</Chart>

@@ -1,0 +1,9 @@
+{
+  "connectorId": "shared_clm-20graph-20discovery-5fd26832dc2718bb74-5f3a7a868715172dd4",
+  "environment": "7aea53ef-f648-ecc3-b6aa-989575f29818",
+  "apiProperties": "apiProperties.graph.json",
+  "apiDefinition": "apiDefinition.graph.swagger.json",
+  "icon": "icon.png",
+  "powerAppsUrl": "https://api.powerapps.com",
+  "powerAppsApiVersion": "2016-11-01"
+}

@@ -1,0 +1,52 @@
+{
+  "properties": {
+    "connectionParameters": {
+      "token": {
+        "type": "oauthSetting",
+        "oAuthSettings": {
+          "identityProvider": "aad",
+          "clientId": "<CLIENT_ID>",
+          "scopes": [
+            "https://management.azure.com/.default"
+          ],
+          "redirectMode": "Global",
+          "redirectUrl": "https://global.consent.azure-apim.net/redirect",
+          "properties": {
+            "IsFirstParty": "False",
+            "AzureActiveDirectoryResourceId": "https://management.azure.com",
+            "IsOnbehalfofLoginSupported": false
+          },
+          "customParameters": {
+            "loginUri": {
+              "value": "https://login.microsoftonline.com"
+            },
+            "tenantId": {
+              "value": "<TENANT_ID>"
+            },
+            "resourceUri": {
+              "value": "https://management.azure.com"
+            },
+            "enableOnbehalfOfLogin": {
+              "value": "false"
+            }
+          }
+        },
+        "uiDefinition": {
+          "displayName": "AAD (ARM)",
+          "description": "Sign in with an account with rights in the target Azure subscriptions.",
+          "tooltip": "Use a service account for unattended Cloud Flows.",
+          "constraints": {
+            "required": "true"
+          }
+        }
+      }
+    },
+    "iconBrandColor": "#1F3A93",
+    "capabilities": [
+      "actions"
+    ],
+    "publisher": "CLM Platform Ops",
+    "stackOwner": "CLM Platform Ops",
+    "policyTemplateInstances": []
+  }
+}

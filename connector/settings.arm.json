@@ -1,0 +1,11 @@
+{
+  "connectorId": "REPLACE_AFTER_FIRST_CREATE",
+  "environment": "7aea53ef-f648-ecc3-b6aa-989575f29818",
+  "apiProperties": "apiProperties.arm.json",
+  "apiDefinition": "apiDefinition.arm.swagger.json",
+  "icon": "icon.png",
+  "powerAppsApiVersion": "2016-11-01",
+  "powerAppsUrl": "https://api.powerapps.com",
+  "flowApiVersion": "2016-11-01",
+  "flowUrl": "https://api.flow.microsoft.com"
+}

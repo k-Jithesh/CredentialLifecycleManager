@@ -1,0 +1,15 @@
+RoleName,Entity,Create,Read,Write,Delete,Append,AppendTo,Notes
+CLM Reader,clm_credential,No,Organization,No,No,Yes,Yes,Read-only visibility across all credentials
+CLM Reader,clm_renewalevent,No,Organization,No,No,No,Yes,
+CLM Reader,clm_discoveryrun,No,Organization,No,No,No,Yes,
+CLM Owner,clm_credential,No,Organization,User,No,Yes,Yes,Write limited to records they own
+CLM Owner,clm_renewalevent,Organization,Organization,No,No,Yes,Yes,Append-only: owners can create events but not modify or delete history
+CLM Owner,clm_discoveryrun,No,Organization,No,No,No,Yes,
+CLM Platform Ops,clm_credential,Organization,Organization,Organization,Organization,Yes,Yes,Full access including Orphaned triage
+CLM Platform Ops,clm_renewalevent,Organization,Organization,Organization,Organization,Yes,Yes,
+CLM Platform Ops,clm_discoveryrun,Organization,Organization,Organization,Organization,Yes,Yes,
+CLM Platform Ops,clm_ownerrule,Organization,Organization,Organization,Organization,Yes,Yes,
+CLM Platform Ops,clm_sourceenvironment,Organization,Organization,Organization,Organization,Yes,Yes,
+CLM Reader,clm_coveragegap,No,Organization,No,No,No,Yes,Read-only visibility on coverage gaps
+CLM Owner,clm_coveragegap,No,Organization,User,No,Yes,Yes,Owners can acknowledge / suppress gaps assigned to them
+CLM Platform Ops,clm_coveragegap,Organization,Organization,Organization,Organization,Yes,Yes,Full triage on coverage gaps

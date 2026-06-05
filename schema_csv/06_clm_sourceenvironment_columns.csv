@@ -1,0 +1,10 @@
+SchemaName,DisplayName,DataType,RequiredLevel,MaxLength,Precision,IsPrimaryName,IsAlternateKey,Description
+clm_name,Environment Name,SingleLineOfText,ApplicationRequired,200,,Yes,No,"Friendly name."
+clm_externalid,External Id,SingleLineOfText,ApplicationRequired,200,,No,Yes,"Power Platform environment id, Azure subscription id, or tenant id."
+clm_scopetype,Scope Type,Choice,ApplicationRequired,,,No,No,"Option set: clm_scopetype. Values: PowerPlatformEnvironment, AzureSubscription, EntraTenant, KeyVault."
+clm_region,Region,SingleLineOfText,Optional,100,,No,No,"Azure / Power Platform region."
+clm_tenantid,Tenant Id,SingleLineOfText,Recommended,100,,No,No,"AAD tenant id."
+clm_isproduction,Is Production,TwoOptions,Optional,,,No,No,"Used for risk scoring."
+clm_isenabled,Discovery Enabled,TwoOptions,ApplicationRequired,,,No,No,"Whether discovery flows should scan this scope."
+clm_lastscannedon,Last Scanned On,DateTime,Optional,,,No,No,"Most recent successful discovery run touching this scope."
+clm_platformopsteam,Platform Ops Team,Lookup,Optional,,,No,No,"Team that receives Orphaned credentials from this scope."

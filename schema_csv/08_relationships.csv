@@ -1,0 +1,13 @@
+SchemaName,Type,ReferencedEntity,ReferencingEntity,ReferencingAttribute,CascadeDelete,Description
+clm_credential_environmentref,ManyToOne,clm_sourceenvironment,clm_credential,clm_environmentref,Restrict,"Credential → Source Environment"
+clm_credential_owneruser,ManyToOne,systemuser,clm_credential,clm_owneruser,Restrict,"Credential → Owner (User)"
+clm_credential_ownerteam,ManyToOne,team,clm_credential,clm_ownerteam,Restrict,"Credential → Owner (Team)"
+clm_credential_managerid,ManyToOne,systemuser,clm_credential,clm_managerid,Restrict,"Credential → Manager (User)"
+clm_renewalevent_credentialid,ManyToOne,clm_credential,clm_renewalevent,clm_credentialid,Cascade,"Renewal Event → Credential (cascade so events follow credential deletes)"
+clm_renewalevent_actoruser,ManyToOne,systemuser,clm_renewalevent,clm_actoruser,Restrict,"Renewal Event → Actor (User)"
+clm_ownerrule_assigntoteam,ManyToOne,team,clm_ownerrule,clm_assigntoteam,Restrict,"Owner Rule → Assign To Team"
+clm_ownerrule_assigntouser,ManyToOne,systemuser,clm_ownerrule,clm_assigntouser,Restrict,"Owner Rule → Assign To User"
+clm_sourceenvironment_platformopsteam,ManyToOne,team,clm_sourceenvironment,clm_platformopsteam,Restrict,"Source Environment → Platform Ops Team"
+clm_coveragegap_assignedto,ManyToOne,systemuser,clm_coveragegap,clm_assignedto,Restrict,"Coverage Gap → Assigned To (User)"
+clm_coveragegap_assignedteam,ManyToOne,team,clm_coveragegap,clm_assignedteam,Restrict,"Coverage Gap → Assigned Team"
+clm_coveragegap_sourceenvironment,ManyToOne,clm_sourceenvironment,clm_coveragegap,clm_sourceenvironment,Restrict,"Coverage Gap → Source Environment"

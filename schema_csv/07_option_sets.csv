@@ -1,0 +1,77 @@
+OptionSetSchemaName,OptionValue,OptionLabel,IsDefault,Description
+clm_sourcesystem,100000000,Entra App Registration,Yes,Azure AD application credentials (client secrets / cert keyCredentials)
+clm_sourcesystem,100000001,Enterprise Application,No,Service principal credentials
+clm_sourcesystem,100000002,Key Vault Secret,No,Azure Key Vault secret with expires attribute
+clm_sourcesystem,100000003,Key Vault Certificate,No,Azure Key Vault certificate
+clm_sourcesystem,100000004,Power Pages Site,No,Power Pages SSL / IdP signing certificates
+clm_sourcesystem,100000005,Dataverse App User,No,Application user inside a Dataverse environment
+clm_sourcesystem,100000006,Email Server Profile,No,Dynamics 365 email server profile (OAuth credentials)
+clm_sourcesystem,100000007,Custom Connector,No,Power Platform custom connector OAuth client secret
+clm_sourcesystem,100000008,Connection Reference,No,Power Platform connection / connection reference token
+clm_sourcesystem,100000009,API Management,No,Azure API Management subscription key or backend certificate
+clm_sourcesystem,100000010,Service Bus,No,Service Bus SAS policy
+clm_sourcesystem,100000011,Storage Account,No,Storage account access key or SAS
+clm_sourcesystem,100000012,SQL,No,Azure SQL admin / contained user credential
+clm_sourcesystem,100000013,Plugin Registration,No,Dataverse plugin registration secret
+clm_sourcesystem,100000099,Other,No,Manually tracked credential not covered by a discovery flow
+clm_credentialtype,200000000,Client Secret,Yes,Symmetric password credential
+clm_credentialtype,200000001,Certificate,No,Asymmetric certificate
+clm_credentialtype,200000002,SAS Token,No,Shared Access Signature
+clm_credentialtype,200000003,API Key,No,Static API key
+clm_credentialtype,200000004,OAuth Refresh Token,No,Long-lived OAuth refresh token
+clm_credentialtype,200000005,SSH Key,No,SSH key pair
+clm_credentialtype,200000099,Other,No,Other credential type
+clm_credentialstatus,300000000,Active,Yes,Credential is valid and not yet in a reminder bucket
+clm_credentialstatus,300000001,Renewal Due,No,Inside the first reminder window
+clm_credentialstatus,300000002,In Renewal,No,Owner has claimed renewal
+clm_credentialstatus,300000003,Renewed,No,New credential has been issued (awaiting next discovery confirmation)
+clm_credentialstatus,300000004,Expired,No,Past expiry date
+clm_credentialstatus,300000005,Suppressed,No,Reminders silenced until clm_suppresseduntil
+clm_credentialstatus,300000006,Orphaned,No,No owner could be resolved
+clm_credentialstatus,300000007,Decommissioned,No,Source object retired
+clm_reminderbucket,400000000,D90,No,90 days before expiry
+clm_reminderbucket,400000001,D60,No,60 days before expiry
+clm_reminderbucket,400000002,D30,Yes,30 days before expiry
+clm_reminderbucket,400000003,D14,No,14 days before expiry
+clm_reminderbucket,400000004,D7,No,7 days before expiry
+clm_reminderbucket,400000005,D1,No,1 day before expiry
+clm_reminderbucket,400000006,D0,No,Day of expiry
+clm_reminderbucket,400000007,Overdue,No,Past expiry
+clm_runstatus,500000000,Running,Yes,Run in progress
+clm_runstatus,500000001,Succeeded,No,Completed with no errors
+clm_runstatus,500000002,PartialSuccess,No,Completed but with non-fatal errors
+clm_runstatus,500000003,Failed,No,Run failed
+clm_eventaction,600000000,Discovered,Yes,Credential newly observed by a discovery flow
+clm_eventaction,600000001,Updated,No,Existing record updated from discovery
+clm_eventaction,600000002,ReminderSent,No,Teams / email reminder dispatched
+clm_eventaction,600000003,Claimed,No,Owner clicked I will renew
+clm_eventaction,600000004,Reassigned,No,Ownership moved to another user/team
+clm_eventaction,600000005,Snoozed,No,Reminders deferred
+clm_eventaction,600000006,Renewed,No,Credential renewed at the source
+clm_eventaction,600000007,Suppressed,No,Reminders silenced
+clm_eventaction,600000008,EscalatedToManager,No,Escalation reminder sent to owner's manager
+clm_eventaction,600000009,MarkedOrphaned,No,Owner resolution failed
+clm_matchscope,700000000,DisplayName,Yes,Match against the source object display name
+clm_matchscope,700000001,Tag,No,Match against an Azure resource tag value (key 'Owner' or 'Team')
+clm_matchscope,700000002,Environment,No,Match against Power Platform environment name
+clm_matchscope,700000003,KeyVaultName,No,Match against Key Vault name
+clm_matchscope,700000004,ResourceGroup,No,Match against Azure resource group name
+clm_scopetype,800000000,PowerPlatformEnvironment,Yes,A Power Platform environment
+clm_scopetype,800000001,AzureSubscription,No,An Azure subscription
+clm_scopetype,800000002,EntraTenant,No,An Entra (AAD) tenant
+clm_scopetype,800000003,KeyVault,No,A specific Key Vault
+clm_scopetype,800000004,ResourceGroup,No,An Azure resource group
+clm_scopetype,800000005,DataverseEnvironment,No,A Dataverse environment
+clm_scopetype,800000006,ManagementGroup,No,An Azure management group
+clm_gaptype,900000000,NoListPermission,No,Discovery identity lacks management-plane permission to list the resource
+clm_gaptype,900000001,NoReadPermission,No,Can see the resource but cannot read its credentials (data-plane 403)
+clm_gaptype,900000002,NetworkBlocked,No,Firewall / private endpoint / Conditional Access blocked the call
+clm_gaptype,900000003,Disabled,No,Resource disabled or soft-deleted
+clm_gaptype,900000004,AuthFailed,No,Token acquisition failed (expired cert / revoked SP / MFA)
+clm_gaptype,900000005,ThrottledMaxRetries,No,Exceeded retry budget due to HTTP 429
+clm_gaptype,900000006,NotFound,No,Resource returned 404
+clm_gaptype,900000007,UnknownError,Yes,Uncategorised failure
+clm_gapstatus,950000000,Open,Yes,Newly detected or still failing
+clm_gapstatus,950000001,Acknowledged,No,Owner has seen it and is working on remediation
+clm_gapstatus,950000002,Resolved,No,Latest discovery run succeeded; gap auto-closed
+clm_gapstatus,950000003,Suppressed,No,Intentionally ignored until clm_suppresseduntil

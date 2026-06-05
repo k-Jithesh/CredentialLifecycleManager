@@ -1,0 +1,4 @@
+Entity,KeyName,Attributes,Purpose
+clm_credential,clm_credential_externalid_key,clm_externalid,"Upsert key used by every discovery flow to avoid duplicates."
+clm_sourceenvironment,clm_sourceenvironment_externalid_key,clm_externalid,"Upsert key for environment provisioning."
+clm_coveragegap,clm_coveragegap_externalid_key,clm_externalid,"Upsert key for coverage-gap rows so a flow re-running on a still-failing scope updates the same row."

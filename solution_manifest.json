@@ -1,0 +1,325 @@
+{
+  "publisher": {
+    "uniqueName": "clmpublisher",
+    "friendlyName": "Credential Lifecycle Manager Publisher",
+    "description": "Publisher for the Credential Lifecycle Manager solution.",
+    "customizationPrefix": "clm",
+    "optionValuePrefix": 10000
+  },
+  "solution": {
+    "uniqueName": "CredentialLifecycleManager",
+    "friendlyName": "Credential Lifecycle Manager",
+    "description": "Tracks expiring secrets, certificates and keys across Entra, Power Platform, Power Pages, Dataverse, Key Vault, APIM and other BizApps integrations, and drives reminder workflows to owners and teams.",
+    "version": "1.0.0.0"
+  },
+  "optionSets": [
+    {
+      "schemaName": "clm_sourcesystem",
+      "displayName": "Source System",
+      "description": "Control plane where the credential lives.",
+      "options": [
+        { "value": 100000000, "label": "Entra App Registration", "description": "Azure AD application credentials (client secrets / cert keyCredentials)." },
+        { "value": 100000001, "label": "Enterprise Application", "description": "Service principal credentials." },
+        { "value": 100000002, "label": "Key Vault Secret",       "description": "Azure Key Vault secret with expires attribute." },
+        { "value": 100000003, "label": "Key Vault Certificate",  "description": "Azure Key Vault certificate." },
+        { "value": 100000004, "label": "Power Pages Site",       "description": "Power Pages SSL / IdP signing certificates." },
+        { "value": 100000005, "label": "Dataverse App User",     "description": "Application user inside a Dataverse environment." },
+        { "value": 100000006, "label": "Email Server Profile",   "description": "Dynamics 365 email server profile (OAuth credentials)." },
+        { "value": 100000007, "label": "Custom Connector",       "description": "Power Platform custom connector OAuth client secret." },
+        { "value": 100000008, "label": "Connection Reference",   "description": "Power Platform connection / connection reference token." },
+        { "value": 100000009, "label": "API Management",         "description": "Azure API Management subscription key or backend certificate." },
+        { "value": 100000010, "label": "Service Bus",            "description": "Service Bus SAS policy." },
+        { "value": 100000011, "label": "Storage Account",        "description": "Storage account access key or SAS." },
+        { "value": 100000012, "label": "SQL",                    "description": "Azure SQL admin / contained user credential." },
+        { "value": 100000013, "label": "Plugin Registration",    "description": "Dataverse plugin registration secret." },
+        { "value": 100000099, "label": "Other",                  "description": "Manually tracked credential not covered by a discovery flow." }
+      ]
+    },
+    {
+      "schemaName": "clm_credentialtype",
+      "displayName": "Credential Type",
+      "description": "Kind of secret material.",
+      "options": [
+        { "value": 200000000, "label": "Client Secret",         "description": "Symmetric password credential." },
+        { "value": 200000001, "label": "Certificate",           "description": "Asymmetric certificate." },
+        { "value": 200000002, "label": "SAS Token",             "description": "Shared Access Signature." },
+        { "value": 200000003, "label": "API Key",               "description": "Static API key." },
+        { "value": 200000004, "label": "OAuth Refresh Token",   "description": "Long-lived OAuth refresh token." },
+        { "value": 200000005, "label": "SSH Key",               "description": "SSH key pair." },
+        { "value": 200000099, "label": "Other",                 "description": "Other credential type." }
+      ]
+    },
+    {
+      "schemaName": "clm_credentialstatus",
+      "displayName": "Credential Status",
+      "description": "Lifecycle state of the credential record.",
+      "options": [
+        { "value": 300000000, "label": "Active",          "description": "Credential is valid and not yet in a reminder bucket." },
+        { "value": 300000001, "label": "Renewal Due",     "description": "Inside the first reminder window." },
+        { "value": 300000002, "label": "In Renewal",      "description": "Owner has claimed renewal." },
+        { "value": 300000003, "label": "Renewed",         "description": "New credential issued; awaiting next discovery confirmation." },
+        { "value": 300000004, "label": "Expired",         "description": "Past expiry date." },
+        { "value": 300000005, "label": "Suppressed",      "description": "Reminders silenced until clm_suppresseduntil." },
+        { "value": 300000006, "label": "Orphaned",        "description": "No owner could be resolved." },
+        { "value": 300000007, "label": "Decommissioned",  "description": "Source object retired." }
+      ]
+    },
+    {
+      "schemaName": "clm_reminderbucket",
+      "displayName": "Reminder Bucket",
+      "description": "Pre-expiry notification thresholds.",
+      "options": [
+        { "value": 400000000, "label": "D90",     "description": "90 days before expiry." },
+        { "value": 400000001, "label": "D60",     "description": "60 days before expiry." },
+        { "value": 400000002, "label": "D30",     "description": "30 days before expiry." },
+        { "value": 400000003, "label": "D14",     "description": "14 days before expiry." },
+        { "value": 400000004, "label": "D7",      "description": "7 days before expiry." },
+        { "value": 400000005, "label": "D1",      "description": "1 day before expiry." },
+        { "value": 400000006, "label": "D0",      "description": "Day of expiry." },
+        { "value": 400000007, "label": "Overdue", "description": "Past expiry." }
+      ]
+    },
+    {
+      "schemaName": "clm_runstatus",
+      "displayName": "Run Status",
+      "description": "Discovery run outcome.",
+      "options": [
+        { "value": 500000000, "label": "Running",        "description": "Run in progress." },
+        { "value": 500000001, "label": "Succeeded",      "description": "Completed with no errors." },
+        { "value": 500000002, "label": "PartialSuccess", "description": "Completed but with non-fatal errors." },
+        { "value": 500000003, "label": "Failed",         "description": "Run failed." }
+      ]
+    },
+    {
+      "schemaName": "clm_eventaction",
+      "displayName": "Event Action",
+      "description": "Action recorded on a renewal event.",
+      "options": [
+        { "value": 600000000, "label": "Discovered",          "description": "Credential newly observed by a discovery flow." },
+        { "value": 600000001, "label": "Updated",             "description": "Existing record updated from discovery." },
+        { "value": 600000002, "label": "ReminderSent",        "description": "Teams / email reminder dispatched." },
+        { "value": 600000003, "label": "Claimed",             "description": "Owner clicked I'll renew." },
+        { "value": 600000004, "label": "Reassigned",          "description": "Ownership moved to another user/team." },
+        { "value": 600000005, "label": "Snoozed",             "description": "Reminders deferred." },
+        { "value": 600000006, "label": "Renewed",             "description": "Credential renewed at the source." },
+        { "value": 600000007, "label": "Suppressed",          "description": "Reminders silenced." },
+        { "value": 600000008, "label": "EscalatedToManager",  "description": "Escalation reminder sent to manager." },
+        { "value": 600000009, "label": "MarkedOrphaned",      "description": "Owner resolution failed." }
+      ]
+    },
+    {
+      "schemaName": "clm_matchscope",
+      "displayName": "Match Scope",
+      "description": "Field a CLM owner rule evaluates against.",
+      "options": [
+        { "value": 700000000, "label": "DisplayName",    "description": "Source object display name." },
+        { "value": 700000001, "label": "Tag",            "description": "Azure resource tag value." },
+        { "value": 700000002, "label": "Environment",   "description": "Power Platform environment name." },
+        { "value": 700000003, "label": "KeyVaultName",  "description": "Key Vault name." },
+        { "value": 700000004, "label": "ResourceGroup", "description": "Azure resource group name." }
+      ]
+    },
+    {
+      "schemaName": "clm_scopetype",
+      "displayName": "Scope Type",
+      "description": "Kind of source environment.",
+      "options": [
+        { "value": 800000000, "label": "PowerPlatformEnvironment", "description": "A Power Platform environment." },
+        { "value": 800000001, "label": "AzureSubscription",        "description": "An Azure subscription." },
+        { "value": 800000002, "label": "EntraTenant",              "description": "An Entra (AAD) tenant." },
+        { "value": 800000003, "label": "KeyVault",                 "description": "A specific Key Vault." },
+        { "value": 800000004, "label": "ResourceGroup",            "description": "An Azure resource group." },
+        { "value": 800000005, "label": "DataverseEnvironment",     "description": "A Dataverse environment." },
+        { "value": 800000006, "label": "ManagementGroup",          "description": "An Azure management group." }
+      ]
+    },
+    {
+      "schemaName": "clm_gaptype",
+      "displayName": "Coverage Gap Type",
+      "description": "Reason discovery could not enumerate credentials in a scope.",
+      "options": [
+        { "value": 900000000, "label": "NoListPermission",     "description": "Discovery identity lacks management-plane permission to list the resource (e.g. ARM 403)." },
+        { "value": 900000001, "label": "NoReadPermission",     "description": "Discovery identity can see the resource but cannot read its credentials (e.g. Key Vault data-plane 403)." },
+        { "value": 900000002, "label": "NetworkBlocked",       "description": "Resource firewall / private endpoint / Conditional Access blocked the call." },
+        { "value": 900000003, "label": "Disabled",             "description": "Resource is disabled or soft-deleted." },
+        { "value": 900000004, "label": "AuthFailed",           "description": "Token acquisition failed (expired cert, revoked SP, MFA challenge)." },
+        { "value": 900000005, "label": "ThrottledMaxRetries",  "description": "Exceeded retry budget due to throttling (HTTP 429)." },
+        { "value": 900000006, "label": "NotFound",             "description": "Resource returned 404 (may be deleted or moved)." },
+        { "value": 900000007, "label": "UnknownError",         "description": "Uncategorised failure; see clm_lasterrordetail." }
+      ]
+    },
+    {
+      "schemaName": "clm_gapstatus",
+      "displayName": "Coverage Gap Status",
+      "description": "Triage state of a coverage gap.",
+      "options": [
+        { "value": 950000000, "label": "Open",         "description": "Newly detected or still failing." },
+        { "value": 950000001, "label": "Acknowledged", "description": "Owner has seen it and is working on remediation." },
+        { "value": 950000002, "label": "Resolved",     "description": "Latest discovery run succeeded; gap auto-closed." },
+        { "value": 950000003, "label": "Suppressed",   "description": "Intentionally ignored until clm_suppresseduntil." }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "schemaName": "clm_credential",
+      "displayName": "Credential",
+      "displayCollectionName": "Credentials",
+      "description": "Inventory record for any secret, certificate or key tracked by the Credential Lifecycle Manager.",
+      "ownershipType": "UserOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": true,
+      "columns": [
+        { "schemaName": "clm_name",              "displayName": "Name",                 "dataType": "String",      "requiredLevel": "ApplicationRequired", "maxLength": 250, "isPrimary": true,  "description": "Friendly label." },
+        { "schemaName": "clm_externalid",        "displayName": "External Id",          "dataType": "String",      "requiredLevel": "ApplicationRequired", "maxLength": 400, "description": "Stable hash {source}|{tenant}|{objectId}|{keyId}." },
+        { "schemaName": "clm_sourcesystem",      "displayName": "Source System",        "dataType": "Choice",      "requiredLevel": "ApplicationRequired", "optionSet": "clm_sourcesystem", "description": "Control plane where the credential lives." },
+        { "schemaName": "clm_credentialtype",    "displayName": "Credential Type",      "dataType": "Choice",      "requiredLevel": "ApplicationRequired", "optionSet": "clm_credentialtype", "description": "Kind of secret material." },
+        { "schemaName": "clm_objectid",          "displayName": "Object Id",            "dataType": "String",      "requiredLevel": "Recommended", "maxLength": 200, "description": "Source object identifier." },
+        { "schemaName": "clm_keyid",             "displayName": "Key Id",               "dataType": "String",      "requiredLevel": "None", "maxLength": 200, "description": "Sub-identifier when one object holds multiple credentials." },
+        { "schemaName": "clm_displayname",       "displayName": "Source Display Name",  "dataType": "String",      "requiredLevel": "Recommended", "maxLength": 400, "description": "Display name at discovery time." },
+        { "schemaName": "clm_environment",       "displayName": "Environment",          "dataType": "String",      "requiredLevel": "Recommended", "maxLength": 200, "description": "PP environment id, Azure subscription id, or tenant id." },
+        { "schemaName": "clm_tenantid",          "displayName": "Tenant Id",            "dataType": "String",      "requiredLevel": "Recommended", "maxLength": 100, "description": "AAD tenant id." },
+        { "schemaName": "clm_expirydate",        "displayName": "Expiry Date",          "dataType": "DateTime",    "requiredLevel": "ApplicationRequired", "description": "UTC datetime the credential expires." },
+        { "schemaName": "clm_notbeforedate",     "displayName": "Not Before",           "dataType": "DateTime",    "requiredLevel": "None", "description": "UTC datetime the credential becomes valid." },
+        { "schemaName": "clm_status",            "displayName": "Status",               "dataType": "Choice",      "requiredLevel": "ApplicationRequired", "optionSet": "clm_credentialstatus", "description": "Lifecycle status." },
+        { "schemaName": "clm_ownerlocked",       "displayName": "Owner Locked",         "dataType": "Boolean",     "requiredLevel": "None", "description": "When Yes, discovery flows do not overwrite owner fields." },
+        { "schemaName": "clm_lastdiscoveredon",  "displayName": "Last Discovered On",   "dataType": "DateTime",    "requiredLevel": "None", "description": "Updated by every discovery flow run that sees this credential." },
+        { "schemaName": "clm_lastreminderon",    "displayName": "Last Reminder On",     "dataType": "DateTime",    "requiredLevel": "None", "description": "Last time a reminder was sent." },
+        { "schemaName": "clm_remindersent",      "displayName": "Reminders Sent",       "dataType": "MultiChoice", "requiredLevel": "None", "optionSet": "clm_reminderbucket", "description": "Buckets already notified." },
+        { "schemaName": "clm_renewalticketurl",  "displayName": "Renewal Ticket URL",   "dataType": "Url",         "requiredLevel": "None", "maxLength": 500, "description": "Deep link to Planner task / DevOps work item." },
+        { "schemaName": "clm_sourceportalurl",   "displayName": "Source Portal URL",    "dataType": "Url",         "requiredLevel": "None", "maxLength": 500, "description": "Deep link to manage in native portal." },
+        { "schemaName": "clm_riskscore",         "displayName": "Risk Score",           "dataType": "Integer",     "requiredLevel": "None", "description": "0-100 risk score." },
+        { "schemaName": "clm_notes",             "displayName": "Notes",                "dataType": "Memo",        "requiredLevel": "None", "maxLength": 4000, "description": "Free text notes from ops team." },
+        { "schemaName": "clm_suppresseduntil",   "displayName": "Suppressed Until",     "dataType": "DateTime",    "requiredLevel": "None", "description": "Reminders skipped until this date." }
+      ]
+    },
+    {
+      "schemaName": "clm_sourceenvironment",
+      "displayName": "Source Environment",
+      "displayCollectionName": "Source Environments",
+      "description": "Logical scope (Power Platform env, Azure sub, tenant) that discovery flows scan.",
+      "ownershipType": "OrganizationOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": false,
+      "columns": [
+        { "schemaName": "clm_name",         "displayName": "Environment Name", "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 200, "isPrimary": true, "description": "Friendly name." },
+        { "schemaName": "clm_externalid",   "displayName": "External Id",      "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 200, "description": "PP env id / Azure sub id / tenant id." },
+        { "schemaName": "clm_scopetype",    "displayName": "Scope Type",       "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_scopetype", "description": "Kind of scope." },
+        { "schemaName": "clm_region",       "displayName": "Region",           "dataType": "String",   "requiredLevel": "None", "maxLength": 100, "description": "Azure / PP region." },
+        { "schemaName": "clm_tenantid",     "displayName": "Tenant Id",        "dataType": "String",   "requiredLevel": "Recommended", "maxLength": 100, "description": "AAD tenant id." },
+        { "schemaName": "clm_isproduction", "displayName": "Is Production",    "dataType": "Boolean",  "requiredLevel": "None", "description": "Used for risk scoring." },
+        { "schemaName": "clm_isenabled",    "displayName": "Discovery Enabled","dataType": "Boolean",  "requiredLevel": "ApplicationRequired", "description": "Whether discovery flows should scan this scope." },
+        { "schemaName": "clm_lastscannedon","displayName": "Last Scanned On",  "dataType": "DateTime", "requiredLevel": "None", "description": "Most recent successful discovery run." }
+      ]
+    },
+    {
+      "schemaName": "clm_discoveryrun",
+      "displayName": "Discovery Run",
+      "displayCollectionName": "Discovery Runs",
+      "description": "Audit log entry for each execution of a discovery flow.",
+      "ownershipType": "OrganizationOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": false,
+      "columns": [
+        { "schemaName": "clm_name",          "displayName": "Run Name",        "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 200, "isPrimary": true, "description": "Format: {source} - {ISO datetime}." },
+        { "schemaName": "clm_sourcesystem",  "displayName": "Source System",   "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_sourcesystem", "description": "Which discovery flow ran." },
+        { "schemaName": "clm_startedon",     "displayName": "Started On",      "dataType": "DateTime", "requiredLevel": "ApplicationRequired", "description": "UTC start time." },
+        { "schemaName": "clm_finishedon",    "displayName": "Finished On",     "dataType": "DateTime", "requiredLevel": "None", "description": "UTC end time." },
+        { "schemaName": "clm_status",        "displayName": "Run Status",      "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_runstatus", "description": "Run outcome." },
+        { "schemaName": "clm_foundcount",    "displayName": "Found",           "dataType": "Integer",  "requiredLevel": "None", "description": "Number of source objects enumerated." },
+        { "schemaName": "clm_createdcount",  "displayName": "Created",         "dataType": "Integer",  "requiredLevel": "None", "description": "New credential rows created." },
+        { "schemaName": "clm_updatedcount",  "displayName": "Updated",         "dataType": "Integer",  "requiredLevel": "None", "description": "Existing credential rows updated." },
+        { "schemaName": "clm_orphanedcount", "displayName": "Orphaned",        "dataType": "Integer",  "requiredLevel": "None", "description": "Rows ended with no resolvable owner." },
+        { "schemaName": "clm_errorcount",    "displayName": "Errors",          "dataType": "Integer",  "requiredLevel": "None", "description": "Errors encountered." },
+        { "schemaName": "clm_errordetails",  "displayName": "Error Details",   "dataType": "Memo",     "requiredLevel": "None", "maxLength": 8000, "description": "JSON / text describing failures." },
+        { "schemaName": "clm_environment",   "displayName": "Environment",     "dataType": "String",   "requiredLevel": "None", "maxLength": 200, "description": "Scope of this run." },
+        { "schemaName": "clm_flowrunurl",    "displayName": "Flow Run URL",    "dataType": "Url",      "requiredLevel": "None", "maxLength": 500, "description": "Deep link to the Power Automate run." }
+      ]
+    },
+    {
+      "schemaName": "clm_renewalevent",
+      "displayName": "Renewal Event",
+      "displayCollectionName": "Renewal Events",
+      "description": "Time-series history of actions taken against a credential.",
+      "ownershipType": "OrganizationOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": false,
+      "columns": [
+        { "schemaName": "clm_name",            "displayName": "Event Name",      "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 200, "isPrimary": true, "description": "Format: {action} - {credentialName} - {ts}." },
+        { "schemaName": "clm_action",          "displayName": "Action",          "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_eventaction", "description": "What happened." },
+        { "schemaName": "clm_actorisflow",     "displayName": "Actor Is Flow",   "dataType": "Boolean",  "requiredLevel": "None", "description": "Yes when system-initiated." },
+        { "schemaName": "clm_occurredon",      "displayName": "Occurred On",     "dataType": "DateTime", "requiredLevel": "ApplicationRequired", "description": "UTC timestamp." },
+        { "schemaName": "clm_reminderbucket",  "displayName": "Reminder Bucket", "dataType": "Choice",   "requiredLevel": "None", "optionSet": "clm_reminderbucket", "description": "Bucket that triggered the event." },
+        { "schemaName": "clm_notes",           "displayName": "Notes",           "dataType": "Memo",     "requiredLevel": "None", "maxLength": 4000, "description": "Free-text context." },
+        { "schemaName": "clm_payload",         "displayName": "Payload (JSON)",  "dataType": "Memo",     "requiredLevel": "None", "maxLength": 8000, "description": "Serialized snapshot at event time." }
+      ]
+    },
+    {
+      "schemaName": "clm_coveragegap",
+      "displayName": "Coverage Gap",
+      "displayCollectionName": "Coverage Gaps",
+      "description": "Scope (vault, subscription, environment, etc.) that the discovery identity cannot enumerate. Surfaces 'unknown unknowns' so a clean dashboard cannot hide blind spots.",
+      "ownershipType": "OrganizationOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": true,
+      "columns": [
+        { "schemaName": "clm_name",                "displayName": "Name",                 "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 300, "isPrimary": true, "description": "Format: {scopeType} - {scopeName}." },
+        { "schemaName": "clm_externalid",          "displayName": "External Id",          "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 400, "description": "Upsert key: {scopeType}|{scopeId}." },
+        { "schemaName": "clm_scopetype",           "displayName": "Scope Type",           "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_scopetype", "description": "Kind of scope that failed enumeration." },
+        { "schemaName": "clm_scopename",           "displayName": "Scope Name",           "dataType": "String",   "requiredLevel": "Recommended", "maxLength": 400, "description": "Display name of the failing scope (e.g. vault name)." },
+        { "schemaName": "clm_scopeid",             "displayName": "Scope Id",             "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 500, "description": "ARM resource id, environment id, or tenant id." },
+        { "schemaName": "clm_parentscopeid",       "displayName": "Parent Scope Id",      "dataType": "String",   "requiredLevel": "None", "maxLength": 500, "description": "e.g. subscription id when scope is a vault; helps roll-up reporting." },
+        { "schemaName": "clm_gaptype",             "displayName": "Gap Type",             "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_gaptype", "description": "Failure category." },
+        { "schemaName": "clm_status",              "displayName": "Status",               "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_gapstatus", "description": "Triage state." },
+        { "schemaName": "clm_firstdetectedon",     "displayName": "First Detected On",    "dataType": "DateTime", "requiredLevel": "None", "description": "First time discovery saw this gap." },
+        { "schemaName": "clm_lastattemptedon",     "displayName": "Last Attempted On",    "dataType": "DateTime", "requiredLevel": "None", "description": "Most recent discovery attempt against the scope." },
+        { "schemaName": "clm_lasthttpstatus",      "displayName": "Last HTTP Status",     "dataType": "Integer",  "requiredLevel": "None", "description": "HTTP status code returned (e.g. 401, 403, 404, 429)." },
+        { "schemaName": "clm_lasterrorcode",       "displayName": "Last Error Code",      "dataType": "String",   "requiredLevel": "None", "maxLength": 200, "description": "Service-specific error code (e.g. Forbidden, AuthorizationFailed)." },
+        { "schemaName": "clm_lasterrordetail",     "displayName": "Last Error Detail",    "dataType": "Memo",     "requiredLevel": "None", "maxLength": 4000, "description": "Raw error message (truncated)." },
+        { "schemaName": "clm_resolutionhint",      "displayName": "Resolution Hint",      "dataType": "Memo",     "requiredLevel": "None", "maxLength": 2000, "description": "Auto-generated remediation guidance (e.g. RBAC role + scope + SP id to grant)." },
+        { "schemaName": "clm_consecutivefailures", "displayName": "Consecutive Failures", "dataType": "Integer",  "requiredLevel": "None", "description": "Counter used for escalation logic." },
+        { "schemaName": "clm_severity",            "displayName": "Severity (1-5)",       "dataType": "Integer",  "requiredLevel": "None", "description": "Derived: production scope + many credentials elsewhere = higher severity." },
+        { "schemaName": "clm_resolvedon",          "displayName": "Resolved On",          "dataType": "DateTime", "requiredLevel": "None", "description": "When access was confirmed restored." },
+        { "schemaName": "clm_suppresseduntil",     "displayName": "Suppressed Until",     "dataType": "DateTime", "requiredLevel": "None", "description": "Date until which reminders are skipped." },
+        { "schemaName": "clm_notes",               "displayName": "Notes",                "dataType": "Memo",     "requiredLevel": "None", "maxLength": 4000, "description": "Triage notes." }
+      ]
+    },
+    {
+      "schemaName": "clm_ownerrule",
+      "displayName": "Owner Rule",
+      "displayCollectionName": "Owner Rules",
+      "description": "Fallback rule mapping a credential to a team when no explicit owner is set on the source.",
+      "ownershipType": "OrganizationOwned",
+      "enableAuditing": true,
+      "enableChangeTracking": false,
+      "columns": [
+        { "schemaName": "clm_name",          "displayName": "Rule Name",       "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 200, "isPrimary": true, "description": "Human-readable rule name." },
+        { "schemaName": "clm_priority",      "displayName": "Priority",        "dataType": "Integer",  "requiredLevel": "ApplicationRequired", "description": "Lower wins. Evaluated ascending." },
+        { "schemaName": "clm_matchscope",    "displayName": "Match Scope",     "dataType": "Choice",   "requiredLevel": "ApplicationRequired", "optionSet": "clm_matchscope", "description": "Field to evaluate." },
+        { "schemaName": "clm_matchpattern",  "displayName": "Match Pattern",   "dataType": "String",   "requiredLevel": "ApplicationRequired", "maxLength": 500, "description": "Regex evaluated against the match scope." },
+        { "schemaName": "clm_isactive",      "displayName": "Active",          "dataType": "Boolean",  "requiredLevel": "ApplicationRequired", "description": "Whether the rule participates in evaluation." },
+        { "schemaName": "clm_lastmatchedon", "displayName": "Last Matched On", "dataType": "DateTime", "requiredLevel": "None", "description": "Rule-health reporting." },
+        { "schemaName": "clm_matchcount",    "displayName": "Match Count",     "dataType": "Integer",  "requiredLevel": "None", "description": "Total times this rule has matched." }
+      ]
+    }
+  ],
+  "relationships": [
+    { "schemaName": "clm_coveragegap_assignedto",        "referencedEntity": "systemuser",            "referencingEntity": "clm_coveragegap",  "referencingAttribute": "clm_assignedto",     "displayName": "Assigned To (User)",    "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_coveragegap_assignedteam",      "referencedEntity": "team",                  "referencingEntity": "clm_coveragegap",  "referencingAttribute": "clm_assignedteam",   "displayName": "Assigned Team",         "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_coveragegap_sourceenvironment", "referencedEntity": "clm_sourceenvironment", "referencingEntity": "clm_coveragegap",  "referencingAttribute": "clm_sourceenvironment", "displayName": "Source Environment", "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_credential_environmentref",            "referencedEntity": "clm_sourceenvironment", "referencingEntity": "clm_credential",   "referencingAttribute": "clm_environmentref", "displayName": "Source Environment",   "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_credential_owneruser",                 "referencedEntity": "systemuser",            "referencingEntity": "clm_credential",   "referencingAttribute": "clm_owneruser",     "displayName": "Owner (User)",          "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_credential_ownerteam",                 "referencedEntity": "team",                  "referencingEntity": "clm_credential",   "referencingAttribute": "clm_ownerteam",     "displayName": "Owner (Team)",          "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_credential_managerid",                 "referencedEntity": "systemuser",            "referencingEntity": "clm_credential",   "referencingAttribute": "clm_managerid",     "displayName": "Manager (User)",        "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_renewalevent_credentialid",            "referencedEntity": "clm_credential",        "referencingEntity": "clm_renewalevent", "referencingAttribute": "clm_credentialid",  "displayName": "Credential",            "cascadeDelete": "Cascade", "requiredLevel": "ApplicationRequired" },
+    { "schemaName": "clm_renewalevent_actoruser",               "referencedEntity": "systemuser",            "referencingEntity": "clm_renewalevent", "referencingAttribute": "clm_actoruser",     "displayName": "Actor (User)",          "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_ownerrule_assigntoteam",               "referencedEntity": "team",                  "referencingEntity": "clm_ownerrule",    "referencingAttribute": "clm_assigntoteam",  "displayName": "Assign To Team",        "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_ownerrule_assigntouser",               "referencedEntity": "systemuser",            "referencingEntity": "clm_ownerrule",    "referencingAttribute": "clm_assigntouser",  "displayName": "Assign To User",        "cascadeDelete": "Restrict" },
+    { "schemaName": "clm_sourceenvironment_platformopsteam",    "referencedEntity": "team",                  "referencingEntity": "clm_sourceenvironment", "referencingAttribute": "clm_platformopsteam", "displayName": "Platform Ops Team", "cascadeDelete": "Restrict" }
+  ],
+  "alternateKeys": [
+    { "entity": "clm_credential",        "keyName": "clm_credential_externalid_key",        "attributes": ["clm_externalid"] },
+    { "entity": "clm_sourceenvironment", "keyName": "clm_sourceenvironment_externalid_key", "attributes": ["clm_externalid"] },
+    { "entity": "clm_coveragegap",       "keyName": "clm_coveragegap_externalid_key",       "attributes": ["clm_externalid"] }
+  ]
+}

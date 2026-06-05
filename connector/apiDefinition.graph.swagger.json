@@ -1,0 +1,132 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "CLM Graph Discovery",
+    "description": "CLM discovery surface over Microsoft Graph. Reads AAD application/service-principal credential metadata to feed clm_credential / clm_renewalevent.",
+    "version": "1.0.0",
+    "contact": { "name": "CLM Platform Ops" }
+  },
+  "host": "graph.microsoft.com",
+  "basePath": "/",
+  "schemes": [ "https" ],
+  "consumes": [ "application/json" ],
+  "produces": [ "application/json" ],
+
+  "paths": {
+    "/v1.0/applications": {
+      "get": {
+        "summary": "List AAD applications",
+        "operationId": "ListApplications",
+        "parameters": [
+          { "name": "$select", "in": "query", "type": "string", "required": false, "default": "id,appId,displayName,passwordCredentials,keyCredentials" },
+          { "name": "$top",    "in": "query", "type": "integer", "required": false, "default": 100 },
+          { "name": "$filter", "in": "query", "type": "string",  "required": false },
+          { "name": "ConsistencyLevel", "in": "header", "type": "string", "required": false, "default": "eventual", "x-ms-visibility": "internal" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/ApplicationCollection" } } }
+      }
+    },
+    "/v1.0/applications/{applicationObjectId}": {
+      "get": {
+        "summary": "Get AAD application",
+        "operationId": "GetApplication",
+        "parameters": [
+          { "name": "applicationObjectId", "in": "path", "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "$select", "in": "query", "type": "string", "required": false }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/Application" } } }
+      }
+    },
+    "/v1.0/servicePrincipals": {
+      "get": {
+        "summary": "List service principals",
+        "operationId": "ListServicePrincipals",
+        "parameters": [
+          { "name": "$select", "in": "query", "type": "string", "required": false, "default": "id,appId,displayName,passwordCredentials,keyCredentials,servicePrincipalType" },
+          { "name": "$top",    "in": "query", "type": "integer", "required": false, "default": 100 },
+          { "name": "$filter", "in": "query", "type": "string",  "required": false }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/ServicePrincipalCollection" } } }
+      }
+    },
+    "/v1.0/applications/{applicationObjectId}/owners": {
+      "get": {
+        "summary": "List application owners",
+        "operationId": "ListApplicationOwners",
+        "parameters": [
+          { "name": "applicationObjectId", "in": "path", "required": true, "type": "string", "x-ms-url-encoding": "single" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/DirectoryObjectCollection" } } }
+      }
+    }
+  },
+
+  "definitions": {
+    "ApplicationCollection": {
+      "type": "object",
+      "properties": {
+        "@odata.context":  { "type": "string" },
+        "@odata.nextLink": { "type": "string" },
+        "value": { "type": "array", "items": { "$ref": "#/definitions/Application" } }
+      }
+    },
+    "Application": {
+      "type": "object",
+      "properties": {
+        "id":          { "type": "string" },
+        "appId":       { "type": "string" },
+        "displayName": { "type": "string" },
+        "passwordCredentials": { "type": "array", "items": { "$ref": "#/definitions/PasswordCredential" } },
+        "keyCredentials":      { "type": "array", "items": { "$ref": "#/definitions/KeyCredential" } }
+      }
+    },
+    "PasswordCredential": {
+      "type": "object",
+      "properties": {
+        "keyId":         { "type": "string" },
+        "displayName":   { "type": "string" },
+        "startDateTime": { "type": "string", "format": "date-time" },
+        "endDateTime":   { "type": "string", "format": "date-time" }
+      }
+    },
+    "KeyCredential": {
+      "type": "object",
+      "properties": {
+        "keyId":         { "type": "string" },
+        "displayName":   { "type": "string" },
+        "type":          { "type": "string" },
+        "usage":         { "type": "string" },
+        "startDateTime": { "type": "string", "format": "date-time" },
+        "endDateTime":   { "type": "string", "format": "date-time" }
+      }
+    },
+    "ServicePrincipalCollection": {
+      "type": "object",
+      "properties": {
+        "@odata.context":  { "type": "string" },
+        "@odata.nextLink": { "type": "string" },
+        "value": { "type": "array", "items": { "$ref": "#/definitions/ServicePrincipal" } }
+      }
+    },
+    "ServicePrincipal": {
+      "type": "object",
+      "properties": {
+        "id":                   { "type": "string" },
+        "appId":                { "type": "string" },
+        "displayName":          { "type": "string" },
+        "servicePrincipalType": { "type": "string" },
+        "passwordCredentials":  { "type": "array", "items": { "$ref": "#/definitions/PasswordCredential" } },
+        "keyCredentials":       { "type": "array", "items": { "$ref": "#/definitions/KeyCredential" } }
+      }
+    },
+    "DirectoryObjectCollection": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": { "type": "object", "properties": { "id": { "type": "string" }, "displayName": { "type": "string" }, "userPrincipalName": { "type": "string" } } }
+        }
+      }
+    }
+  }
+}

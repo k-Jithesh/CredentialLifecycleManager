@@ -1,0 +1,7 @@
+SchemaName,DisplayName,DisplayCollectionName,Description,OwnershipType,PrimaryNameAttribute,IsActivity,EnableAuditing,EnableChangeTracking
+clm_credential,Credential,Credentials,"Inventory record for any secret, certificate or key tracked by the Credential Lifecycle Manager.",UserOwned,clm_name,No,Yes,Yes
+clm_discoveryrun,Discovery Run,Discovery Runs,"Audit log entry for each execution of a discovery flow.",OrganizationOwned,clm_name,No,Yes,No
+clm_renewalevent,Renewal Event,Renewal Events,"Time-series history of actions taken against a credential (discovered, reminded, claimed, renewed, etc.).",OrganizationOwned,clm_name,No,Yes,No
+clm_ownerrule,Owner Rule,Owner Rules,"Fallback rule that maps a credential to a team when no explicit owner is set on the source object.",OrganizationOwned,clm_name,No,Yes,No
+clm_sourceenvironment,Source Environment,Source Environments,"Logical scope (Power Platform environment, Azure subscription, tenant) that discovery flows are configured to scan.",OrganizationOwned,clm_name,No,Yes,No
+clm_coveragegap,Coverage Gap,Coverage Gaps,"Scope the discovery identity cannot enumerate (no list perm, no read perm, network blocked, etc.). Surfaces 'unknown unknowns'.",OrganizationOwned,clm_name,No,Yes,Yes

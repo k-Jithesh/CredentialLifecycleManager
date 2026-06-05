@@ -1,0 +1,10 @@
+SchemaName,DisplayName,DataType,RequiredLevel,MaxLength,Precision,IsPrimaryName,Description
+clm_name,Event Name,SingleLineOfText,ApplicationRequired,200,,Yes,"Format: {action} - {credentialName} - {timestamp}."
+clm_credentialid,Credential,Lookup,ApplicationRequired,,,No,"Lookup to clm_credential."
+clm_action,Action,Choice,ApplicationRequired,,,No,"Option set: clm_eventaction. Values: Discovered, ReminderSent, Claimed, Reassigned, Snoozed, Renewed, Suppressed, EscalatedToManager, MarkedOrphaned."
+clm_actoruser,Actor (User),Lookup,Optional,,,No,"Systemuser who performed the action. Null for system-initiated events."
+clm_actorisflow,Actor Is Flow,TwoOptions,Optional,,,No,"Yes when the action was performed by a cloud flow."
+clm_occurredon,Occurred On,DateTime,ApplicationRequired,,,No,"UTC timestamp."
+clm_reminderbucket,Reminder Bucket,Choice,Optional,,,No,"Which bucket triggered the event. Option set: clm_reminderbucket."
+clm_notes,Notes,MultipleLinesOfText,Optional,4000,,No,"Free-text context."
+clm_payload,Payload (JSON),MultipleLinesOfText,Optional,8000,,No,"Serialized snapshot of relevant data at event time."

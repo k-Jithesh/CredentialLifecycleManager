@@ -1,0 +1,10 @@
+<fetch version="1.0" mapping="logical" aggregate="true">
+  <entity name="clm_discoveryrun">
+    <attribute name="clm_discoveryrunid" alias="count_col" aggregate="countcolumn" />
+    <attribute name="clm_status" alias="groupby_col" groupby="true" />
+    <order alias="groupby_col" descending="false" />
+    <filter type="and">
+      <condition attribute="clm_startedon" operator="last-x-days" value="30" />
+    </filter>
+  </entity>
+</fetch>

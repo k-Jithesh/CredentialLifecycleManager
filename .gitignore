@@ -1,0 +1,20 @@
+# Build / unpack artifacts
+_unpack*/
+out/
+*.tmp
+*.bak
+
+# OneDrive / system noise
+~$*
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Secrets you might add later
+*.pfx
+*.cer
+*.pem
+*.key
+secrets.json
+.env
+.env.*

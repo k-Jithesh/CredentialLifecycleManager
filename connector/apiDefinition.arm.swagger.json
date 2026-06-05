@@ -1,0 +1,173 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "CLM Azure Discovery",
+    "description": "CLM discovery surface over Azure Resource Manager. Lists subscriptions, Key Vaults, vault secret metadata, and user-assigned managed identities.",
+    "version": "1.0.0",
+    "contact": { "name": "CLM Platform Ops" }
+  },
+  "host": "management.azure.com",
+  "basePath": "/",
+  "schemes": [ "https" ],
+  "consumes": [ "application/json" ],
+  "produces": [ "application/json" ],
+
+  "paths": {
+    "/subscriptions": {
+      "get": {
+        "summary": "List Azure subscriptions",
+        "operationId": "ListSubscriptions",
+        "parameters": [
+          { "name": "api-version", "in": "query", "required": true, "type": "string", "default": "2022-12-01" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/SubscriptionCollection" } } }
+      }
+    },
+    "/subscriptions/{subscriptionId}/resources": {
+      "get": {
+        "summary": "List resources in subscription",
+        "operationId": "ListResources",
+        "parameters": [
+          { "name": "subscriptionId", "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "api-version",    "in": "query", "required": true, "type": "string", "default": "2021-04-01" },
+          { "name": "$filter",        "in": "query", "required": false, "type": "string" },
+          { "name": "$top",           "in": "query", "required": false, "type": "integer", "default": 200 }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/AzureResourceCollection" } } }
+      }
+    },
+    "/subscriptions/{subscriptionId}/providers/Microsoft.KeyVault/vaults": {
+      "get": {
+        "summary": "List Key Vaults",
+        "operationId": "ListKeyVaults",
+        "parameters": [
+          { "name": "subscriptionId", "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "api-version",    "in": "query", "required": true, "type": "string", "default": "2023-07-01" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/KeyVaultCollection" } } }
+      }
+    },
+    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.KeyVault/vaults/{vaultName}/secrets": {
+      "get": {
+        "summary": "List Key Vault secret metadata (ARM control plane)",
+        "operationId": "ListVaultSecrets",
+        "parameters": [
+          { "name": "subscriptionId",    "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "resourceGroupName", "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "vaultName",         "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "api-version",       "in": "query", "required": true, "type": "string", "default": "2023-07-01" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/KeyVaultSecretCollection" } } }
+      }
+    },
+    "/subscriptions/{subscriptionId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities": {
+      "get": {
+        "summary": "List user-assigned managed identities",
+        "operationId": "ListUserAssignedIdentities",
+        "parameters": [
+          { "name": "subscriptionId", "in": "path",  "required": true, "type": "string", "x-ms-url-encoding": "single" },
+          { "name": "api-version",    "in": "query", "required": true, "type": "string", "default": "2023-01-31" }
+        ],
+        "responses": { "200": { "description": "OK", "schema": { "$ref": "#/definitions/ManagedIdentityCollection" } } }
+      }
+    }
+  },
+
+  "definitions": {
+    "SubscriptionCollection": {
+      "type": "object",
+      "properties": { "value": { "type": "array", "items": { "$ref": "#/definitions/Subscription" } } }
+    },
+    "Subscription": {
+      "type": "object",
+      "properties": {
+        "id":             { "type": "string" },
+        "subscriptionId": { "type": "string" },
+        "displayName":    { "type": "string" },
+        "state":          { "type": "string" }
+      }
+    },
+    "AzureResourceCollection": {
+      "type": "object",
+      "properties": { "value": { "type": "array", "items": { "$ref": "#/definitions/AzureResource" } } }
+    },
+    "AzureResource": {
+      "type": "object",
+      "properties": {
+        "id":       { "type": "string" },
+        "name":     { "type": "string" },
+        "type":     { "type": "string" },
+        "location": { "type": "string" },
+        "tags":     { "type": "object" }
+      }
+    },
+    "KeyVaultCollection": {
+      "type": "object",
+      "properties": { "value": { "type": "array", "items": { "$ref": "#/definitions/KeyVault" } } }
+    },
+    "KeyVault": {
+      "type": "object",
+      "properties": {
+        "id":         { "type": "string" },
+        "name":       { "type": "string" },
+        "type":       { "type": "string" },
+        "location":   { "type": "string" },
+        "properties": { "type": "object" }
+      }
+    },
+    "KeyVaultSecretCollection": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id":   { "type": "string" },
+              "name": { "type": "string" },
+              "properties": {
+                "type": "object",
+                "properties": {
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": { "type": "boolean" },
+                      "nbf":     { "type": "integer" },
+                      "exp":     { "type": "integer" },
+                      "created": { "type": "integer" },
+                      "updated": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ManagedIdentityCollection": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id":       { "type": "string" },
+              "name":     { "type": "string" },
+              "location": { "type": "string" },
+              "properties": {
+                "type": "object",
+                "properties": {
+                  "principalId": { "type": "string" },
+                  "clientId":    { "type": "string" },
+                  "tenantId":    { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
