@@ -86,7 +86,7 @@ pwsh ./Deploy-CLMSchema.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
 ```
 
 Then in the maker portal:
-- Open the **clm_credential** table → **+ New column** → Name `clm_daysuntilexpiry`, Type **Formula**, formula: `DiffInDays(Now(), 'Credential'.clm_expirydate)`. (Calculated columns can't be created cleanly via Web API.)
+- Open the **clm_credential** table → **+ New column** → Name `clm_daysuntilexpiry`, Type **Formula**, formula: `DateDiff(Now(), 'Expiry Date', TimeUnit.Days)`. (Calculated/Formula columns can't be created cleanly via Web API.)
 
 ### 2. Add the tag / ownersource columns
 
