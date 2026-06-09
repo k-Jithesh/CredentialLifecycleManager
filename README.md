@@ -48,7 +48,7 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `schema_csv/` | Human-readable column reference for all 5 tables + option sets | n/a |
 | `solution_manifest.json` | Declarative spec consumed by `Deploy-CLMSchema.ps1` | n/a |
 | `clmPlatformOps_1_0_0_1.zip` | Publisher solution (`clm` prefix) | 1.0.0.1 |
-| `CredentialLifecycleManager_1_0_0_2.zip` | Schema solution (tables, columns, choices) | 1.0.0.2 |
+| `CredentialLifecycleManager_1_0_0_3.zip` | Schema solution (tables, columns, choices, security roles) | 1.0.0.3 |
 | `CLMDiscoveryFlow_1_0_0_22.zip` | Discovery flow + 2 custom connectors (AppReg + Enterprise App + KV) | 1.0.0.22 |
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
@@ -138,7 +138,7 @@ Add the resulting client ID as a **Dataverse Application User** with role `CLM P
 
 In https://make.powerapps.com → target env → Solutions → Import:
 - `clmPlatformOps_1_0_0_1.zip`
-- `CredentialLifecycleManager_1_0_0_2.zip`
+- `CredentialLifecycleManager_1_0_0_3.zip`
 
 ### 5. Custom connectors
 

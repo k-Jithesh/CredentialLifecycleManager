@@ -161,8 +161,10 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 30 Days' `
     <attribute name="clm_environment" />
     <order attribute="clm_expirydate" descending="false" />
     <filter type="and">
-      <condition attribute="clm_daysuntilexpiry" operator="le" value="30" />
-      <condition attribute="clm_daysuntilexpiry" operator="gt" value="7" />
+      <filter type="and">
+        <condition attribute="clm_daysuntilexpiry" operator="le" value="30" />
+        <condition attribute="clm_daysuntilexpiry" operator="gt" value="7" />
+      </filter>
       <condition attribute="clm_status" operator="ne" value="300000005" />
       <condition attribute="clm_status" operator="ne" value="300000007" />
     </filter>
@@ -185,8 +187,10 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 7 Days' `
     <attribute name="clm_owneruser" />
     <order attribute="clm_expirydate" descending="false" />
     <filter type="and">
+    <filter type="and">
       <condition attribute="clm_daysuntilexpiry" operator="le" value="7" />
       <condition attribute="clm_daysuntilexpiry" operator="gt" value="0" />
+    </filter>
       <condition attribute="clm_status" operator="ne" value="300000005" />
       <condition attribute="clm_status" operator="ne" value="300000007" />
     </filter>
