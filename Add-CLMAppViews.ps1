@@ -7,7 +7,7 @@
     clm_coveragegap. Idempotent — upserts by view name within each entity.
 
 .PARAMETER EnvironmentUrl
-    e.g. https://<DATAVERSE_HOST>
+    e.g. https://org6e899b87.crm.dynamics.com
 
 .PARAMETER SolutionUniqueName
     Optional. If set, views are added to the named solution. Default omits the
@@ -18,7 +18,7 @@
 param(
     [Parameter(Mandatory)] [string] $EnvironmentUrl,
     [string] $TenantId,
-    [string] $AccountId = '<OPS_EMAIL>',
+    [string] $AccountId = 'jikalam@microsoft.com',
     [string] $SolutionUniqueName
 )
 
@@ -146,7 +146,7 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'All Active Credentials' `
 "@ -LayoutXml $credLayout
 
 Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 30 Days' `
-    -Description 'Credentials expiring within 30 days (active, not suppressed).' `
+    -Description 'Credentials expiring in 8-30 days (active, not suppressed, not yet expired).' `
     -FetchXml @"
 <fetch version="1.0" mapping="logical">
   <entity name="clm_credential">
@@ -162,6 +162,7 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 30 Days' `
     <order attribute="clm_expirydate" descending="false" />
     <filter type="and">
       <condition attribute="clm_daysuntilexpiry" operator="le" value="30" />
+      <condition attribute="clm_daysuntilexpiry" operator="gt" value="7" />
       <condition attribute="clm_status" operator="ne" value="300000005" />
       <condition attribute="clm_status" operator="ne" value="300000007" />
     </filter>
@@ -170,7 +171,7 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 30 Days' `
 "@ -LayoutXml $credLayout
 
 Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 7 Days' `
-    -Description 'Critical: credentials expiring within 7 days.' `
+    -Description 'Critical: credentials expiring in the next 7 days (not yet expired).' `
     -FetchXml @"
 <fetch version="1.0" mapping="logical">
   <entity name="clm_credential">
@@ -185,6 +186,7 @@ Upsert-View -EntityName 'clm_credential' -ViewName 'Expiring in 7 Days' `
     <order attribute="clm_expirydate" descending="false" />
     <filter type="and">
       <condition attribute="clm_daysuntilexpiry" operator="le" value="7" />
+      <condition attribute="clm_daysuntilexpiry" operator="gt" value="0" />
       <condition attribute="clm_status" operator="ne" value="300000005" />
       <condition attribute="clm_status" operator="ne" value="300000007" />
     </filter>
