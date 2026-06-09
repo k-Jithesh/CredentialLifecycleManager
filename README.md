@@ -52,6 +52,7 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CLMDiscoveryFlow_1_0_0_22.zip` | Discovery flow + 2 custom connectors (AppReg + Enterprise App + KV) | 1.0.0.22 |
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
+| `CLMApp_1_0_0_1.zip` | Model-driven app + 10 views + 4 charts + CLM Operations dashboard | 1.0.0.1 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
@@ -250,6 +251,50 @@ The default auto-generated form works, but a curated form makes triage much fast
 
 For a Status colour badge, add the **Status** field to the header and set its display to **Read-only** then use form formatting (modern designer → Properties → Formatting → Colour by value).
 
+## How owner resolution works
+
+Every credential gets an owner via this priority chain (run daily by the OwnerResolver flow):
+
+1. **Locked** (`clm_ownerlocked = true`) → skip — manual edits win
+2. **Tag-driven** — if `clm_ownertag` is an email that resolves to a Dataverse user, that user becomes the owner. Tag values come from Azure resource `tags.Owner` and AAD application owners.
+3. **Stale-tag cleanup** — if the previous owner came from a tag that's no longer valid, clear it so Phase 4 can re-assign
+4. **Rule fallback** — `clm_ownerrule` rows are evaluated in priority order (ascending). First match wins. Rules match on credential display name, environment, or vault name using case-insensitive substring patterns.
+
+The credential's `clm_ownersource` field shows which phase set the current owner: `Tag`, `AADOwner`, `Rule`, or `Manual`.
+
+**For deep guidance** — rule writing patterns, troubleshooting, validation views, and tuning checklist — see [`docs/OWNER_RESOLUTION.md`](docs/OWNER_RESOLUTION.md).
+
+## Cross-environment deployment
+
+To deploy CLM into a new environment (test / customer prod / staging), import these solution zips in order. Each can be redownloaded from this repo's root.
+
+| # | Solution zip | What it contains | Connection refs to bind |
+|---|---|---|---|
+| 1 | `clmPlatformOps_1_0_0_1.zip` | Publisher (`clm` prefix) | none |
+| 2 | `CredentialLifecycleManager_1_0_0_3.zip` | 5 tables, 8 option sets, alt keys, **security roles** | none |
+| 3 | `CLMDiscoveryFlow_1_0_0_22.zip` | Discovery flow + 2 custom connectors | `clm_dataverse`, `clm_clmgraphdiscovery`, `clm_clmazurediscovery` |
+| 4 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | `clm_dataverse` |
+| 5 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine (Approvals + email) | `clm_dataverse`, `clm_office365`, `clm_approvals` |
+| 6 | `CLMApp_1_0_0_1.zip` | Model-driven app, 10 views, 4 charts, dashboard | none |
+
+### Pre-import prep
+- Schema columns added by `Add-CLMOwnerColumns.ps1` and the formula column `clm_daysuntilexpiry` must exist before importing the flows (they reference these fields). Schema solution v3 covers `clm_ownertag` and `clm_ownersource`; the formula column still needs the maker-portal step in section 1.
+- Custom connector OAuth client secrets get **wiped** on connector import — re-paste them in the connector's Security tab after the Discovery import.
+- Create connections (Dataverse, custom connectors, Office 365, Approvals) **before** binding connection references during flow import.
+
+### Post-import steps
+1. Add the SP as a **Dataverse Application User** with the **CLM Platform Ops** security role (now shipped in schema v3)
+2. Grant Azure RBAC to the SP per subscription (Reader + Key Vault Reader — see Step 3 in the deployment runbook)
+3. Seed `clm_ownerrule` rows for the target tenant's naming conventions (edit `Seed-CLMOwnerRules.ps1`)
+4. Create env variables for the target env: `clm_platformopsemail`, `clm_credentialformurl_template` (URLs differ per env — get the app ID from the new env)
+5. Turn on all three flows + run once on demand
+
+### Differences between unmanaged and managed solutions
+All the zips in this repo are **unmanaged** — fine for in-tenant deployment, but for handing off to customers you may want managed. To produce managed versions:
+- Open the source solution in the maker portal
+- Export → choose **Managed** for the package type
+- Customers can then import as managed (locks down customization, easier to support, harder to debug)
+
 ## Daily schedule (AUS Eastern)
 
 | Time | Flow | Purpose |
@@ -284,7 +329,7 @@ Set `clm_ownerlocked = true` on the credential row. Both Owner Resolver and Remi
 | `clm_renewalevent` | Append-only history (Discovered, ReminderSent, Reassigned, MarkedOrphaned, …) | `clm_action`, `clm_credentialid`, `clm_occurredon` |
 | `clm_ownerrule` | Regex/substring-based fallback ownership rules | `clm_priority`, `clm_matchscope`, `clm_matchpattern`, `clm_isactive`, `clm_matchcount` |
 
-See `schema_csv/` for full column lists, and `docs/RBAC_AND_COVERAGE.md` for the SP RBAC matrix.
+See `schema_csv/` for full column lists, [`docs/RBAC_AND_COVERAGE.md`](docs/RBAC_AND_COVERAGE.md) for the SP RBAC matrix, and [`docs/OWNER_RESOLUTION.md`](docs/OWNER_RESOLUTION.md) for the owner-rule engine deep dive.
 
 ## License
 
