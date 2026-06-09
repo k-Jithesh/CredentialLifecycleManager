@@ -49,7 +49,7 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `solution_manifest.json` | Declarative spec consumed by `Deploy-CLMSchema.ps1` | n/a |
 | `clmPlatformOps_1_0_0_1.zip` | Publisher solution (`clm` prefix) | 1.0.0.1 |
 | `CredentialLifecycleManager_1_0_0_2.zip` | Schema solution (tables, columns, choices) | 1.0.0.2 |
-| `CLMDiscoveryFlow_1_0_0_17.zip` | Discovery flow + 2 custom connectors | 1.0.0.17 |
+| `CLMDiscoveryFlow_1_0_0_22.zip` | Discovery flow + 2 custom connectors (AppReg + Enterprise App + KV) | 1.0.0.22 |
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
@@ -142,7 +142,7 @@ In https://make.powerapps.com → target env → Solutions → Import:
 
 ### 5. Custom connectors
 
-When you import `CLMDiscoveryFlow_1_0_0_17.zip` in step 7, the two custom connectors land automatically. **Before** importing the flow, however:
+When you import `CLMDiscoveryFlow_1_0_0_22.zip` in step 7, the two custom connectors land automatically. **Before** importing the flow, however:
 
 1. Open each new custom connector → **Security** tab → paste the Discovery app's **Client Secret** (or upload the cert if using cert auth) → **Update connector**
 2. Add the connector's **Redirect URL** to the AAD app's **Authentication** blade (typically `https://global.consent.azure-apim.net/redirect`)
@@ -160,7 +160,7 @@ Solutions → CLMDiscoveryFlow (or any solution) → **+ New** → **More** → 
 ### 7. Import the three flow solutions
 
 Solutions → Import (in order):
-1. `CLMDiscoveryFlow_1_0_0_17.zip` — bind the 3 connection refs when prompted
+1. `CLMDiscoveryFlow_1_0_0_22.zip` — bind the 3 connection refs when prompted
 2. `CLMOwnerResolver_1_0_0_5.zip` — binds `clm_dataverse`
 3. `CLMReminderEngine_1_0_0_7.zip` — binds `clm_dataverse` + `clm_office365` + `clm_approvals`
 
