@@ -58,10 +58,10 @@ Workaround until then:
 | 1 | Discovery SP must be a **Dataverse Application User** in the Power Pages env | Power Pages env → Settings → Users + permissions → Application users → + New app user |
 | 2 | Assign the **Power Pages Service** security role (or a custom role with read on `adx_website`/`adx_setting` or `mspp_website`/`mspp_sitesetting`) | Same place |
 | 3 | Create a **second Dataverse connection** in the CLM env, signed in as the SP, targeting the Power Pages env | Connections → + New connection → Dataverse → "Connect with service principal" → enter Client ID, Secret, Tenant ID, env URL of the **Power Pages env** |
-| 4 | Create connection reference `clm_dataverse_powerpages` | Solutions → CLMDiscoveryFlowPowerPages → + New → More → Connection reference → bind to the connection from step 3 |
+| 4 | Create connection reference `clm_dataversepowerpages` | Solutions → CLMDiscoveryFlowPowerPages → + New → More → Connection reference → bind to the connection from step 3 |
 | 5 | Set env variable `clm_powerpagesenvurl` | Solutions → CLMDiscoveryFlowPowerPages → + New → More → Environment variable → schema name `clm_powerpagesenvurl`, value = Power Pages env URL like `https://contoso.crm.dynamics.com/` (trailing slash) |
-| 6 | Import `CLMDiscoveryFlow_PowerPages_1_0_0_2.zip` as **Update** | Solutions → Import |
-| 7 | Bind both connection refs (`clm_dataverse` to CLM env, `clm_dataverse_powerpages` to Power Pages env) | When prompted during import |
+| 6 | Import `CLMDiscoveryFlow_PowerPages_1_0_0_3.zip` as **Update** | Solutions → Import |
+| 7 | Bind both connection refs (`clm_dataverse` to CLM env, `clm_dataversepowerpages` to Power Pages env) | When prompted during import |
 | 8 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
 
 ### Schema probe behavior
@@ -111,7 +111,7 @@ Both add-ons currently target **one** Power Pages env per import. Customers with
 
 | Approach | Setup |
 |---|---|
-| **A. Import the add-on N times into the CLM env** with different connection references (`clm_dataverse_powerpages_prod`, `clm_dataverse_powerpages_uat`, etc.) | Manual but works today. Add-on solution name needs renaming per copy. |
+| **A. Import the add-on N times into the CLM env** with different connection references (`clm_dataversepowerpages_prod`, `clm_dataversepowerpages_uat`, etc.) | Manual but works today. Add-on solution name needs renaming per copy. |
 | **B. v25 — dynamic enumeration via BAP** | The BAP API enumerates all envs the SP can see. Future Discovery v25 would loop over `clm_sourceenvironment` rows of type `PowerPlatformEnvironment` and run both legs per env. Single import, scales. |
 | **C. HTTP custom connector with dynamic URL** | Flow uses HTTP action with OAuth2 client_credentials against `<envUrl>/api/data/v9.2/...`. No connection refs needed per env. Most complex. |
 
