@@ -51,7 +51,7 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CredentialLifecycleManager_1_0_0_2.zip` | Schema solution (tables, columns, choices) | 1.0.0.2 |
 | `CLMDiscoveryFlow_1_0_0_17.zip` | Discovery flow + 2 custom connectors | 1.0.0.17 |
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
-| `CLMReminderEngine_1_0_0_4.zip` | Reminder Engine flow (Teams + email) | 1.0.0.4 |
+| `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
@@ -97,10 +97,42 @@ pwsh ./Register-CLMDiscoveryApp.ps1 -DataverseEnvironmentUrl https://<DATAVERSE_
 pwsh ./Add-DelegatedPermissions.ps1
 ```
 
-Required Graph permissions (Application): `Application.Read.All`, `Organization.Read.All`.
-Required Azure RBAC: `Reader` on subscriptions you want scanned, plus `Key Vault Reader` (or equivalent) on each vault.
+#### Microsoft Graph permissions (Application)
+| Permission | Why |
+|---|---|
+| `Application.Read.All` | List AAD app registrations and read their `passwordCredentials` / `keyCredentials` |
+| `Organization.Read.All` | Read tenant id + primary verified domain (used to populate `clm_tenantid` and `clm_environment`) |
 
-Add the resulting client ID as a **Dataverse Application User** with role `CLM Platform Ops` (see prompt printed by the script).
+Both require **admin consent** (granted via the Add-DelegatedPermissions script or manually in the Entra portal).
+
+#### Azure RBAC (per subscription you want scanned)
+| Role | Scope | Why |
+|---|---|---|
+| `Reader` | Subscription | Lists Key Vaults (`Microsoft.KeyVault/vaults/read`). Without this, the ARM leg records a coverage gap for the whole subscription. |
+| `Key Vault Reader` | Subscription or each vault | Reads vault metadata including secret list and expiry attributes (`Microsoft.KeyVault/vaults/secrets/read`). Note: this is the **management plane** role; the discovery flow does **not** read secret *values*, only metadata, so no data-plane access policy / RBAC is needed. |
+
+Grant via Az CLI or the Azure portal:
+
+```bash
+SP_OBJECT_ID="<service-principal-object-id-from-script-output>"
+SUB_ID="<subscription-id>"
+
+az role assignment create --assignee-object-id $SP_OBJECT_ID \
+    --assignee-principal-type ServicePrincipal \
+    --role "Reader" --scope "/subscriptions/$SUB_ID"
+
+az role assignment create --assignee-object-id $SP_OBJECT_ID \
+    --assignee-principal-type ServicePrincipal \
+    --role "Key Vault Reader" --scope "/subscriptions/$SUB_ID"
+```
+
+Repeat per subscription. Coverage gaps are auto-recorded with HTTP status + remediation hint for any subscription/vault the SP can't read, so missing RBAC shows up in the **Open Gaps** view in the model-driven app.
+
+#### Why not Managed Identity?
+Power Platform **custom connectors do not support Azure Managed Identity as an authentication scheme** — only OAuth2, API key, and Basic. The AAD App Registration with a client secret (or cert) is the required pattern when discovery runs from a Power Automate flow. To use a Managed Identity instead, you'd have to re-host the discovery work as an Azure Function / Logic App and call it from a thin HTTP custom connector — significantly larger redesign for a marginal security improvement (the SP credentials live in Power Platform, not in code, and are auto-rotated by Microsoft for the connector's OAuth secret).
+
+#### Add as Dataverse Application User
+Add the resulting client ID as a **Dataverse Application User** with role `CLM Platform Ops` (see prompt printed by `Register-CLMDiscoveryApp.ps1`). This lets the SP write `clm_credential` / `clm_renewalevent` / `clm_coveragegap` rows.
 
 ### 4. Import the publisher and schema solutions
 
@@ -114,7 +146,7 @@ When you import `CLMDiscoveryFlow_1_0_0_17.zip` in step 7, the two custom connec
 
 1. Open each new custom connector → **Security** tab → paste the Discovery app's **Client Secret** (or upload the cert if using cert auth) → **Update connector**
 2. Add the connector's **Redirect URL** to the AAD app's **Authentication** blade (typically `https://global.consent.azure-apim.net/redirect`)
-3. **Connections** (left rail) → **+ New connection** → create one connection per custom connector + one for Microsoft Dataverse + one for Microsoft Teams
+3. **Connections** (left rail) → **+ New connection** → create one connection per custom connector + one each for **Microsoft Dataverse**, **Office 365 Outlook**, and **Approvals**
 
 ### 6. Pre-create connection references
 
@@ -122,25 +154,28 @@ Solutions → CLMDiscoveryFlow (or any solution) → **+ New** → **More** → 
 - `clm_dataverse` → Dataverse connection
 - `clm_clmazurediscovery` → clmarmdiscovery connection
 - `clm_clmgraphdiscovery` → clmgraphdiscovery connection
-- `clm_teams` → Teams connection (for reminder engine)
+- `clm_office365` → Office 365 Outlook connection (for reminder emails)
+- `clm_approvals` → Approvals connection (for owner action cards in Teams/Outlook)
 
 ### 7. Import the three flow solutions
 
 Solutions → Import (in order):
 1. `CLMDiscoveryFlow_1_0_0_17.zip` — bind the 3 connection refs when prompted
 2. `CLMOwnerResolver_1_0_0_5.zip` — binds `clm_dataverse`
-3. `CLMReminderEngine_1_0_0_4.zip` — binds `clm_dataverse` + `clm_teams`
+3. `CLMReminderEngine_1_0_0_7.zip` — binds `clm_dataverse` + `clm_office365` + `clm_approvals`
 
 After each import, open the flow and **Turn on**.
 
-### 8. (Optional) Create the env variable for the Reminder fallback email
+### 8. (Optional) Create env variables
 
 Solutions → CLMReminderEngine → **+ New** → **More** → **Environment variable**:
-- Name (schema): `clm_platformopsemail`
-- Type: Text
-- Default: your ops alias
 
-If you skip this, the flow falls back to the hard-coded `<OPS_EMAIL>` literal.
+| Schema name | Type | Default value | Purpose |
+|---|---|---|---|
+| `clm_platformopsemail` | Text | your ops alias | Fallback recipient when an owner can't be resolved |
+| `clm_credentialformurl_template` | Text | `https://<DATAVERSE_HOST>/main.aspx?appid=<APPID>&pagetype=entityrecord&etn=clm_credential&id=` | Used in Approval card's "open in CLM" link (admins). Trailing `id=` is intentional — flow appends credentialId. |
+
+If you skip these, the flow falls back to the hard-coded `<OPS_EMAIL>` literal and a `#?id=` no-op link.
 
 ### 9. Seed the SYSTEM credential and starter rules
 
@@ -179,7 +214,7 @@ Then in the maker portal:
 |---|---|---|
 | 02:00 | Discovery | Pulls AAD + ARM credentials, populates tags, records gaps |
 | 03:00 | Owner Resolver | Assigns owners from tag → rule, writes audit events |
-| 07:00 | Reminder Engine | DMs owners on D90/60/30/14/7/1/D0/Overdue buckets |
+| 07:00 | Reminder Engine | Emails owner + posts Approvals card (Teams/Outlook) with I'll renew / Snooze 7 days / Reassign to me options. Owner action is processed without requiring a Power Apps license. |
 
 ## How to extend
 
