@@ -57,6 +57,8 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
 | `Add-CLMOwnerColumns.ps1` | Adds `clm_ownertag` + `clm_ownersource` columns | n/a |
 | `Add-CLMAppViews.ps1` | Creates 10 curated public views for the model-driven app | n/a |
+| `Add-CLMAppCharts.ps1` | Creates 4 charts (Status pie, Source column, Type doughnut, Events bar) | n/a |
+| `Add-CLMAppDashboard.ps1` | Creates the CLM Operations system dashboard | n/a |
 | `Seed-CLMOwnerRules.ps1` | Idempotent owner-rule seeder (edit `$Rules` at top) | n/a |
 | `Register-CLMDiscoveryApp.ps1` | Creates the AAD app registration + cert for the SP | n/a |
 | `Add-DelegatedPermissions.ps1` | Grants admin consent for Graph permissions | n/a |
@@ -207,6 +209,46 @@ Then in the maker portal:
 - **Discovery-CLMCredentials** → Run on demand. Credential rows appear; `clm_ownertag` populated from Azure tags / AAD owners; gaps recorded for any unreadable scopes
 - **OwnerResolver-CLMCredentials** → Run. Tag-driven owners assigned, then rule fallback fires
 - **Reminder-CLMCredentials** → Run. Owners with credentials expiring in ≤ 90 days get a Teams DM + email
+
+### 12. (Optional) Charts + dashboard
+
+```powershell
+pwsh ./Add-CLMAppCharts.ps1    -EnvironmentUrl https://<DATAVERSE_HOST>
+pwsh ./Add-CLMAppDashboard.ps1 -EnvironmentUrl https://<DATAVERSE_HOST>
+```
+
+Then in the maker portal:
+1. Open the **Credential Lifecycle** app in Edit
+2. Sitemap → **+ Add page** → **Dashboard** → pick **CLM Operations** → Add
+3. Save → Publish
+
+You now see the dashboard in the app's left nav. It has:
+- Credentials by Status (pie)
+- Credentials by Source System (column)
+- Open Coverage Gaps (live list)
+- Recent Renewal Events (last 7 days, live list)
+
+### 13. (Optional) Customize the credential main form
+
+The default auto-generated form works, but a curated form makes triage much faster. Recommended structure:
+
+| Section | Columns to include |
+|---|---|
+| **Header (always visible)** | Name, Status, Days Until Expiry, Owner (User) |
+| **Identity** tab | External Id, Source System, Credential Type, Object Id, Key Id, Display Name |
+| **Expiry** tab | Expiry Date, Days Until Expiry, Not Before, Last Discovered On, Reminders Sent, Last Reminder On, Suppressed Until |
+| **Ownership** tab | Owner (User), Owner (Team), Owner Tag, Owner Source, Owner Locked, Manager (User) |
+| **Source** tab | Source Display Name, Environment / Subscription, Tenant Id, Source Environment (lookup), Source Portal URL, Risk Score |
+| **Audit** tab | Renewal Events related grid (subgrid → Renewal Events → Credential lookup) |
+
+**To build it (10 min in UI):**
+1. Power Apps → Tables → Credential → **Forms** → click **Information** (default main form) → **Edit form**
+2. **+ Add tab** for each tab above
+3. **+ Add field** to drop columns into sections
+4. **+ Component → Subgrid** on the Audit tab → Table: Renewal Events → Default view: Recent Events (7 days)
+5. Save → Publish
+
+For a Status colour badge, add the **Status** field to the header and set its display to **Read-only** then use form formatting (modern designer → Properties → Formatting → Colour by value).
 
 ## Daily schedule (AUS Eastern)
 
