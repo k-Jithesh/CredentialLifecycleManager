@@ -91,9 +91,11 @@ $chartStatusId    = Get-ChartId -EntityCode 'clm_credential'    -Name 'Credentia
 $chartSourceId    = Get-ChartId -EntityCode 'clm_credential'    -Name 'Credentials by Source System'
 $viewOpenGapsId   = Get-ViewId  -EntityName 'clm_coveragegap'   -ViewName 'Open Gaps'
 $viewRecentEvtsId = Get-ViewId  -EntityName 'clm_renewalevent'  -ViewName 'Recent Events (7 days)'
+$viewAllCredsId   = Get-ViewId  -EntityName 'clm_credential'    -ViewName 'All Active Credentials'
 
 Write-Host "  Credentials by Status chart:   $chartStatusId"   -ForegroundColor DarkGray
 Write-Host "  Credentials by Source chart:   $chartSourceId"   -ForegroundColor DarkGray
+Write-Host "  All Active Credentials view:   $viewAllCredsId"  -ForegroundColor DarkGray
 Write-Host "  Open Gaps view:                $viewOpenGapsId"  -ForegroundColor DarkGray
 Write-Host "  Recent Events view:            $viewRecentEvtsId" -ForegroundColor DarkGray
 
@@ -104,25 +106,28 @@ Write-Host "  Recent Events view:            $viewRecentEvtsId" -ForegroundColor
 $formXml = @"
 <form>
   <tabs>
-    <tab name="tab0" id="{a3a3a3a3-1111-2222-3333-444444444444}" IsUserDefined="0" showlabel="false" expanded="true" verticallayout="true">
+    <tab name="tab0" id="{a3a3a3a3-1111-2222-3333-444444444444}" showlabel="false" expanded="true" verticallayout="true">
       <labels><label description="CLM Operations" languagecode="1033" /></labels>
       <columns>
         <column width="100%">
           <sections>
-            <section name="sec0" showlabel="false" showbar="false" columns="2" labelwidth="115" IsUserDefined="0" id="{b1b1b1b1-1111-2222-3333-444444444444}">
+            <section name="sec0" showlabel="false" showbar="false" columns="2" labelwidth="115" id="{b1b1b1b1-1111-2222-3333-444444444444}">
               <labels><label description="Row 1" languagecode="1033" /></labels>
               <rows>
                 <row>
                   <cell id="{c0000001-0000-0000-0000-000000000001}" showlabel="false" rowspan="6" colspan="1">
                     <labels><label description="Credentials by Status" languagecode="1033" /></labels>
-                    <control id="ChartStatus" classid="{F1737F87-1A1F-4D88-A704-2EBB897A2F88}">
+                    <control id="ChartStatus" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
                       <parameters>
-                        <ViewId>{00000000-0000-0000-00aa-000010001005}</ViewId>
+                        <ViewId>{$viewAllCredsId}</ViewId>
                         <IsUserView>false</IsUserView>
-                        <RelationshipName />
                         <TargetEntityType>clm_credential</TargetEntityType>
-                        <VisualizationId>{$chartStatusId}</VisualizationId>
                         <AutoExpand>Fixed</AutoExpand>
+                        <EnableQuickFind>false</EnableQuickFind>
+                        <EnableViewPicker>false</EnableViewPicker>
+                        <EnableJumpBar>false</EnableJumpBar>
+                        <ChartGridMode>Chart</ChartGridMode>
+                        <VisualizationId>{$chartStatusId}</VisualizationId>
                         <EnableChartPicker>false</EnableChartPicker>
                         <RecordsPerPage>10</RecordsPerPage>
                       </parameters>
@@ -130,14 +135,17 @@ $formXml = @"
                   </cell>
                   <cell id="{c0000002-0000-0000-0000-000000000002}" showlabel="false" rowspan="6" colspan="1">
                     <labels><label description="Credentials by Source System" languagecode="1033" /></labels>
-                    <control id="ChartSource" classid="{F1737F87-1A1F-4D88-A704-2EBB897A2F88}">
+                    <control id="ChartSource" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
                       <parameters>
-                        <ViewId>{00000000-0000-0000-00aa-000010001005}</ViewId>
+                        <ViewId>{$viewAllCredsId}</ViewId>
                         <IsUserView>false</IsUserView>
-                        <RelationshipName />
                         <TargetEntityType>clm_credential</TargetEntityType>
-                        <VisualizationId>{$chartSourceId}</VisualizationId>
                         <AutoExpand>Fixed</AutoExpand>
+                        <EnableQuickFind>false</EnableQuickFind>
+                        <EnableViewPicker>false</EnableViewPicker>
+                        <EnableJumpBar>false</EnableJumpBar>
+                        <ChartGridMode>Chart</ChartGridMode>
+                        <VisualizationId>{$chartSourceId}</VisualizationId>
                         <EnableChartPicker>false</EnableChartPicker>
                         <RecordsPerPage>10</RecordsPerPage>
                       </parameters>

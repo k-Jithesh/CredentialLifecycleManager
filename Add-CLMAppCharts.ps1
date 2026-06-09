@@ -123,8 +123,7 @@ $pdByStatus = @"
   <Series>
     <Series ChartType="Pie" Font="{0}, 9.5px" LabelForeColor="59, 59, 59" CustomProperties="PieLabelStyle=Outside, DoughnutRadius=60, CollectedThreshold=2, CollectedThresholdUsePercent=True" Name="Series1">
       <SmartLabelStyle Enabled="True" />
-      <Legend Title="Credentials by Status" />
-    </Series>
+          </Series>
   </Series>
   <ChartAreas>
     <ChartArea BorderColor="White" Name="Default">
@@ -136,7 +135,7 @@ $pdByStatus = @"
     <Legend Alignment="Center" LegendStyle="Table" Docking="Right" IsEquallySpacedItems="True" Font="{0}, 11px" ShadowColor="0, 0, 0, 0" ForeColor="59, 59, 59" Name="Legend1" />
   </Legends>
   <Titles>
-    <Title Alignment="TopLeft" DockingOffset="-3" Font="{0}, 13px" ForeColor="0, 0, 0" Name="Title1" />
+    <Title Alignment="TopLeft" DockingOffset="-3" Font="{0}, 13px" ForeColor="0, 0, 0" Text="Credentials by Status" Name="Title1" />
   </Titles>
 </Chart>
 "@
@@ -176,8 +175,7 @@ $pdBySource = @"
 <Chart Palette="BrightPastel">
   <Series>
     <Series ChartType="Column" Font="{0}, 9.5px" LabelForeColor="59, 59, 59" Name="Series1">
-      <Legend Title="Credentials by Source System" />
-    </Series>
+          </Series>
   </Series>
   <ChartAreas>
     <ChartArea BorderColor="White" Name="Default">
@@ -189,7 +187,7 @@ $pdBySource = @"
     <Legend Alignment="Center" LegendStyle="Table" Docking="Right" Font="{0}, 11px" ForeColor="59, 59, 59" Name="Legend1" />
   </Legends>
   <Titles>
-    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Name="Title1" />
+    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Text="Credentials by Source System" Name="Title1" />
   </Titles>
 </Chart>
 "@
@@ -233,8 +231,7 @@ $pdByLifecycle = @"
 <Chart Palette="BrightPastel">
   <Series>
     <Series ChartType="Doughnut" Font="{0}, 9.5px" LabelForeColor="59, 59, 59" CustomProperties="DoughnutRadius=60" Name="Series1">
-      <Legend Title="Credentials by Type" />
-    </Series>
+          </Series>
   </Series>
   <ChartAreas>
     <ChartArea BorderColor="White" Name="Default">
@@ -246,7 +243,7 @@ $pdByLifecycle = @"
     <Legend Alignment="Center" LegendStyle="Table" Docking="Right" Font="{0}, 11px" ForeColor="59, 59, 59" Name="Legend1" />
   </Legends>
   <Titles>
-    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Name="Title1" />
+    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Text="Credentials by Type" Name="Title1" />
   </Titles>
 </Chart>
 "@
@@ -285,8 +282,7 @@ $pdEventsByAction = @"
 <Chart Palette="BrightPastel">
   <Series>
     <Series ChartType="Bar" Font="{0}, 9.5px" LabelForeColor="59, 59, 59" Name="Series1">
-      <Legend Title="Events (last 30 days)" />
-    </Series>
+          </Series>
   </Series>
   <ChartAreas>
     <ChartArea BorderColor="White" Name="Default">
@@ -298,7 +294,7 @@ $pdEventsByAction = @"
     <Legend Alignment="Center" LegendStyle="Table" Docking="Right" Font="{0}, 11px" ForeColor="59, 59, 59" Name="Legend1" />
   </Legends>
   <Titles>
-    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Name="Title1" />
+    <Title Alignment="TopLeft" Font="{0}, 13px" ForeColor="0, 0, 0" Text="Events by Action (last 30 days)" Name="Title1" />
   </Titles>
 </Chart>
 "@
