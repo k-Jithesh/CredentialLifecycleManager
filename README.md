@@ -53,6 +53,8 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_1_0_0_1.zip` | Model-driven app + 10 views + 4 charts + CLM Operations dashboard | 1.0.0.1 |
+| `CLMDiscoveryFlow_PowerPages_1_0_0_2.zip` | **Optional add-on**: Power Pages IdP signing certs (Dataverse-based, schema-probing) | 1.0.0.2 |
+| `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_1.zip` | **Optional add-on**: Power Pages BYO custom domain SSL certs (BAP-based) | 1.0.0.1 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
@@ -329,7 +331,7 @@ Set `clm_ownerlocked = true` on the credential row. Both Owner Resolver and Remi
 | `clm_renewalevent` | Append-only history (Discovered, ReminderSent, Reassigned, MarkedOrphaned, …) | `clm_action`, `clm_credentialid`, `clm_occurredon` |
 | `clm_ownerrule` | Regex/substring-based fallback ownership rules | `clm_priority`, `clm_matchscope`, `clm_matchpattern`, `clm_isactive`, `clm_matchcount` |
 
-See `schema_csv/` for full column lists, [`docs/RBAC_AND_COVERAGE.md`](docs/RBAC_AND_COVERAGE.md) for the SP RBAC matrix, and [`docs/OWNER_RESOLUTION.md`](docs/OWNER_RESOLUTION.md) for the owner-rule engine deep dive.
+See `schema_csv/` for full column lists, [`docs/RBAC_AND_COVERAGE.md`](docs/RBAC_AND_COVERAGE.md) for the SP RBAC matrix, [`docs/OWNER_RESOLUTION.md`](docs/OWNER_RESOLUTION.md) for the owner-rule engine deep dive, and [`docs/POWER_PAGES_DISCOVERY.md`](docs/POWER_PAGES_DISCOVERY.md) for the two Power Pages add-ons (IdP + BYO SSL).
 
 ## License
 
