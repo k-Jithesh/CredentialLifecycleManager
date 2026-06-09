@@ -92,15 +92,19 @@ This is the add-on that tracks the cert from the example screenshot.
 
 | Step | What | Where |
 |---|---|---|
-| 1 | Grant Discovery SP the **Power Platform Administrator** Entra role | Entra admin center → Roles and admins → Power Platform Administrator → + Add assignments → pick the CLM Discovery app |
+| 1 | Grant Discovery SP the **Power Platform Administrator** Entra role on the **Enterprise application** (not App registration) | Entra admin center → Roles and admins → Power Platform Administrator → + Add assignments → pick the CLM Discovery Enterprise app |
 | 2 | Get the Power Pages **environment ID** (GUID, not URL) | Power Platform admin center → Environments → your Power Pages env → Settings → look for "Environment ID" |
 | 3 | Set env variable `clm_powerpagesenvid` = the GUID from step 2 | Solutions → CLMDiscoveryFlowPowerPagesAdmin → + New → More → Environment variable → schema name `clm_powerpagesenvid` |
-| 4 | Import `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_1.zip` | Solutions → Import. **Includes a new custom connector `clmbap`** |
-| 5 | After import, open the **clmbap** custom connector → Security tab → paste the SP's Client Secret → Update connector | Custom connectors → clmbap → Security |
-| 6 | Add the connector's Redirect URL to the AAD app's Authentication blade | Entra portal → App registrations → CLM Discovery app → Authentication |
-| 7 | Create a **connection** for clmbap (sign in as the SP) | Connections → + New → search clmbap |
-| 8 | Bind `clm_bap` connection reference to the new connection | Solutions → CLMDiscoveryFlowPowerPagesAdmin → Connection references |
-| 9 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
+| 4 | **Import the connector solution first**: `CLMConnector_BAP_1_0_0_1.zip` | Solutions → Import |
+| 5 | Open the **clmbap** custom connector → Security tab → enter Client ID, paste the SP's Client Secret, Tenant ID = `common`, Resource URL = `https://api.bap.microsoft.com` → copy the Redirect URL | Custom connectors → clmbap → Security |
+| 6 | Add the Redirect URL to the AAD app's Authentication blade | Entra portal → App registrations → CLM Discovery app → Authentication |
+| 7 | **Update connector** | Same Security tab |
+| 8 | Create a **connection** for clmbap (sign in as SP) | Connections → + New → search clmbap |
+| 9 | Pre-create the `clm_bap` connection reference: Solutions → any solution → + New → More → Connection reference. Schema name = `clm_bap`, Connector = clmbap, Connection = step 8 | Done so the flow can bind it on import |
+| 10 | **Import the flow solution**: `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_2.zip` → bind `clm_dataverse` and `clm_bap` when prompted | Solutions → Import |
+| 11 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
+
+> **Why two zips?** Solution import refuses circular dependencies. A flow can't import while declaring an unmet dependency on a connection reference whose connector lives in the same solution. Splitting into a connector solution + flow solution lets you create the connection between imports.
 
 ### API stability
 The BAP custom domains endpoint is `2022-03-01-preview`. It's the API the Power Platform admin center UI uses today. Practical risk of API changes is low — it's been stable for 3+ years and Microsoft hasn't published a GA replacement. If it ever does change, the connector swagger needs updating; flow logic stays.

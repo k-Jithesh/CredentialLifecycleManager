@@ -54,7 +54,8 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_1_0_0_1.zip` | Model-driven app + 10 views + 4 charts + CLM Operations dashboard | 1.0.0.1 |
 | `CLMDiscoveryFlow_PowerPages_1_0_0_3.zip` | **Optional add-on**: Power Pages IdP signing certs (Dataverse-based, schema-probing) | 1.0.0.2 |
-| `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_1.zip` | **Optional add-on**: Power Pages BYO custom domain SSL certs (BAP-based) | 1.0.0.1 |
+| `CLMConnector_BAP_1_0_0_1.zip` | **Optional add-on (part 1 of 2)**: BAP custom connector for Power Platform admin API | 1.0.0.1 |
+| `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_2.zip` | **Optional add-on (part 2 of 2)**: Power Pages BYO custom domain SSL discovery flow (requires CLMConnector_BAP imported first) | 1.0.0.2 |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |
