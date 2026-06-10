@@ -54,7 +54,8 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_1_0_0_1.zip` | Model-driven app + 10 views + 4 charts + CLM Operations dashboard | 1.0.0.1 |
 | `CLMDiscoveryFlow_PowerPages_1_0_0_4.zip` | **Optional add-on**: Power Pages IdP signing certs (Dataverse-based, schema-probing) | 1.0.0.4 |
-| `Seed-CLMPortalCerts.ps1` | **CSV-driven seeder** for Power Pages BYO custom domain SSL certs (manual entry — see Power Pages docs for why API-based discovery was parked) | n/a |
+| `Get-CLMPortalCertsViaAdminApi.ps1` | **Automated** Power Pages BYO custom-domain SSL discovery. Enumerates all portals in the tenant, filters to those with `CustomHostNames`, fetches every uploaded SSL cert, dedupes per thumbprint, and upserts into `clm_credential` (`clm_externalid = pp:custom:<portalId>:<thumbprint>`). Supports `-Interactive` (MSAL sign-in via `Az.Accounts`, no DevTools needed) or `-AdminCenterToken` (paste a captured JWT). ⚠️ **Uses undocumented admin-center endpoints** (`portalsitewide-{region}.portal-infra.dynamics.com`) — not covered by Microsoft SLA, no SP/app-only auth. See [`docs/POWER_PAGES_DISCOVERY.md`](docs/POWER_PAGES_DISCOVERY.md). | n/a |
+| `Seed-CLMPortalCerts.ps1` | **CSV-driven fallback** for Power Pages BYO custom-domain SSL certs. Use when the admin-API path isn't viable (regional cluster differs, token capture not available, fully air-gapped workflow). | n/a |
 | `portal_certs.sample.csv` | Sample CSV for `Seed-CLMPortalCerts.ps1` | n/a |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |

@@ -7,7 +7,7 @@
     clm_coveragegap. Idempotent — upserts by view name within each entity.
 
 .PARAMETER EnvironmentUrl
-    e.g. https://org6e899b87.crm.dynamics.com
+    e.g. https://<DATAVERSE_HOST>
 
 .PARAMETER SolutionUniqueName
     Optional. If set, views are added to the named solution. Default omits the

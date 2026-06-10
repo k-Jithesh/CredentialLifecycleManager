@@ -8,7 +8,7 @@
     Idempotent - upserts by name within entity.
 
 .PARAMETER EnvironmentUrl
-    e.g. https://org6e899b87.crm.dynamics.com
+    e.g. https://<DATAVERSE_HOST>
 #>
 
 [CmdletBinding()]

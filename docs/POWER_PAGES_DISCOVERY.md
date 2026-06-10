@@ -7,7 +7,7 @@ CLM ships two **optional add-on solutions** specifically for Power Pages credent
 | Cert type | Where it lives | Add-on that covers it | SP perms required |
 |---|---|---|---|
 | **IdP signing certs** (SAML, OpenID Connect, WS-Federation) | Dataverse table `adx_setting` or `mspp_sitesetting`, rows where name ends in `/Certificate` | **CLMDiscoveryFlow_PowerPages** (automated) | App User in Power Pages env with read on Power Pages tables |
-| **Custom domain SSL/TLS certs** (BYO uploaded via Power Platform admin center, like `pp-contoso.example.com` in the example) | Power Platform service backend (NOT in Dataverse) | **`Seed-CLMPortalCerts.ps1`** (manual CSV) — see Add-on 2 below for why API-based discovery was parked | Caller has Create/Update on `clm_credential` |
+| **Custom domain SSL/TLS certs** (BYO uploaded via Power Platform admin center, like `pp-contoso.example.com` in the example) | Power Platform service backend (NOT in Dataverse) | **`Get-CLMPortalCertsViaAdminApi.ps1`** (automated, undocumented admin-center API) or **`Seed-CLMPortalCerts.ps1`** (CSV fallback) — see Add-on 2 below | Caller has Power Platform Administrator role + Create/Update on `clm_credential` |
 | **Microsoft-managed SSL certs** (default Power Pages cert for `*.microsoftcrmportals.com`) | Microsoft manages renewal automatically | Not tracked (nothing to do) | n/a |
 
 ## Solution layout
@@ -23,8 +23,9 @@ CredentialLifecycleManager (schema, security roles)         ← required
    └── CLMDiscoveryFlow_PowerPages                          ← optional add-on
          covers IdP signing certs (Dataverse-side)
 
-Seed-CLMPortalCerts.ps1 + portal_certs.csv                  ← manual entry for
-                                                              BYO custom domain SSL
+Seed-CLMPortalCerts.ps1 + portal_certs.csv                  ← CSV fallback for
+Get-CLMPortalCertsViaAdminApi.ps1                             BYO custom domain SSL
+                                                              (preferred: admin-API)
 ```
 
 Each add-on is independent. Install only what's needed.
@@ -73,20 +74,47 @@ Modern Power Pages schema (`mspp_*`) takes priority. Three outcomes:
 | `mspp_websites` fails AND `adx_websites` reads OK | `PortalSchema` set to `legacy`, flow uses `adx_*` tables |
 | Both fail | `PortalSchema` stays `unknown`, flow writes a `PowerPagesSchemaUnknown` event and terminates cleanly |
 
-## Add-on 2: CSV-driven manual entry — `Seed-CLMPortalCerts.ps1` (BYO SSL certs)
+## Add-on 2: BYO custom-domain SSL certs (two options)
 
-### Why manual instead of API discovery
+There are two ways to track BYO SSL certs in CLM. **Pick one per environment.**
 
-The original design was an automated discovery flow against `api.bap.microsoft.com` / `api.powerplatform.com`. After significant investigation we parked it because:
+### Option A (recommended): `Get-CLMPortalCertsViaAdminApi.ps1` — automated
 
-- Microsoft retired the `api.bap.microsoft.com/.../powerpages/sites` endpoint (404 across all supported api-versions).
-- The replacement endpoint at `api.powerplatform.com/powerpages/environments/{envId}/websites` requires the SP to hold an RBAC role assigned via the new Power Platform Authorization API.
-- Even after granting the SP `Power Platform Administrator` Entra role AND `Power Platform Reader` RBAC role, the Power Pages sub-route specifically still returned authorization denied in our tenant.
-- The API surface is in active migration; Microsoft hasn't published a stable supported pattern for SP access to Power Pages cert metadata yet.
+Enumerates every portal in the tenant, filters to those with `CustomHostNames` set, fetches every uploaded SSL cert per portal (including certs that are uploaded but not yet bound), dedupes by thumbprint, and upserts into `clm_credential`.
 
-So instead: **ops maintains a CSV** with one row per BYO SSL cert. The script upserts CLM credential rows from the CSV. Re-run on cert renewal (just update the ExpiryDate column).
+```powershell
+# Interactive sign-in (no DevTools step) - preferred
+.\Get-CLMPortalCertsViaAdminApi.ps1 -Interactive `
+    -DataverseHost '<DATAVERSE_HOST>'
 
-### CSV format
+# Dry-run to preview the upsert plan
+.\Get-CLMPortalCertsViaAdminApi.ps1 -Interactive `
+    -DataverseHost '<DATAVERSE_HOST>' -DryRun
+```
+
+**⚠️ Uses undocumented Microsoft internal endpoints.** Specifically:
+
+| Endpoint | What it returns |
+|---|---|
+| `GET https://portalsitewide-{region}.portal-infra.dynamics.com/api/v1/powerPortal/ListPortals` | All Power Pages portals in the tenant (id, name, env, tenant, custom hostnames). Response is a JSON-string-wrapped JSON array (double-encoded). |
+| `GET .../api/v1/admincenter/Certificate/GetCertificatesByPortal?tenantId=...&portalId=...&certType=SSL` | All SSL certs uploaded to that portal, one row per region the cert is replicated to. |
+
+These are the same endpoints the Power Platform admin-center web UI calls. They are **not publicly documented**, **not covered by Microsoft SLA**, and may change or disappear without notice. The `HostRegion` (`oce`, `emea`, `amer`, `ind`, `jpn`, etc.) varies per tenant — check the host of the actual request in DevTools if you get 404.
+
+**Auth: delegated user only.** Microsoft has not (as of writing) enabled service-principal / client-credentials auth on these endpoints. We tested this in detail:
+
+- Granted SP the `Power Platform Administrator` Entra role: still 401/403
+- Created RBAC role assignment via `api.powerplatform.com/authorization/roleAssignments` (`Power Platform Reader` at tenant scope): role assignment succeeded but the Power Pages sub-route still returned authorization denied
+
+So the script uses **delegated user auth** via `Az.Accounts` (`-Interactive`) or a **captured JWT** (`-AdminCenterToken`) from the admin-center web UI. Caller must hold the **Power Platform Administrator** Entra role.
+
+**If the admin-center API ever returns 401/403 or 404 across all `HostRegion` values, fall back to Option B.**
+
+### Option B: `Seed-CLMPortalCerts.ps1` — CSV-driven fallback
+
+For environments where the admin-API path is unusable (locked-down host, no DevTools access, Az.Accounts blocked, undocumented endpoints changed/disappeared), maintain a CSV with one row per BYO SSL cert. The script upserts CLM credential rows from the CSV. Re-run on cert renewal (just update the ExpiryDate column).
+
+#### CSV format
 
 ```
 SiteName,HostName,Thumbprint,ExpiryDate,OwnerEmail,Environment,Notes
