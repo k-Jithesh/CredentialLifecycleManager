@@ -60,7 +60,7 @@ Workaround until then:
 | 3 | Create a **second Dataverse connection** in the CLM env, signed in as the SP, targeting the Power Pages env | Connections → + New connection → Dataverse → "Connect with service principal" → enter Client ID, Secret, Tenant ID, env URL of the **Power Pages env** |
 | 4 | Create connection reference `clm_dataversepowerpages` | Solutions → CLMDiscoveryFlowPowerPages → + New → More → Connection reference → bind to the connection from step 3 |
 | 5 | Set env variable `clm_powerpagesenvurl` | Solutions → CLMDiscoveryFlowPowerPages → + New → More → Environment variable → schema name `clm_powerpagesenvurl`, value = Power Pages env URL like `https://contoso.crm.dynamics.com/` (trailing slash) |
-| 6 | Import `CLMDiscoveryFlow_PowerPages_1_0_0_3.zip` as **Update** | Solutions → Import |
+| 6 | Import `CLMDiscoveryFlow_PowerPages_1_0_0_4.zip` as **Update** | Solutions → Import |
 | 7 | Bind both connection refs (`clm_dataverse` to CLM env, `clm_dataversepowerpages` to Power Pages env) | When prompted during import |
 | 8 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
 
