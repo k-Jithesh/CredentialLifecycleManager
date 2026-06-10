@@ -337,4 +337,4 @@ See `schema_csv/` for full column lists, [`docs/RBAC_AND_COVERAGE.md`](docs/RBAC
 
 ## License
 
-Internal MS use — adapt freely. Customer deliverables may require separate licensing review.
+Licensed under the [MIT License](LICENSE). Adapt freely. Customer deliverables may require separate licensing review.
