@@ -92,19 +92,19 @@ This is the add-on that tracks the cert from the example screenshot.
 
 | Step | What | Where |
 |---|---|---|
-| 1 | Grant Discovery SP the **Power Platform Administrator** Entra role on the **Enterprise application** (not App registration) | Entra admin center → Roles and admins → Power Platform Administrator → + Add assignments → pick the CLM Discovery Enterprise app |
-| 2 | Get the Power Pages **environment ID** (GUID, not URL) | Power Platform admin center → Environments → your Power Pages env → Settings → look for "Environment ID" |
-| 3 | Set env variable `clm_powerpagesenvid` = the GUID from step 2 | Solutions → CLMDiscoveryFlowPowerPagesAdmin → + New → More → Environment variable → schema name `clm_powerpagesenvid` |
-| 4 | **Import the connector solution first**: `CLMConnector_BAP_1_0_0_1.zip` | Solutions → Import |
-| 5 | Open the **clmbap** custom connector → Security tab → enter Client ID, paste the SP's Client Secret, Tenant ID = `common`, Resource URL = `https://api.bap.microsoft.com` → copy the Redirect URL | Custom connectors → clmbap → Security |
-| 6 | Add the Redirect URL to the AAD app's Authentication blade | Entra portal → App registrations → CLM Discovery app → Authentication |
-| 7 | **Update connector** | Same Security tab |
-| 8 | Create a **connection** for clmbap (sign in as SP) | Connections → + New → search clmbap |
-| 9 | Pre-create the `clm_bap` connection reference: Solutions → any solution → + New → More → Connection reference. Schema name = `clm_bap`, Connector = clmbap, Connection = step 8 | Done so the flow can bind it on import |
-| 10 | **Import the flow solution**: `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_2.zip` → bind `clm_dataverse` and `clm_bap` when prompted | Solutions → Import |
-| 11 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
+| 1 | Grant Discovery SP the **Power Platform Administrator** Entra role on the **Enterprise application** | Entra admin center → Roles and admins → Power Platform Administrator → + Add assignments → pick the CLM Discovery Enterprise app |
+| 2 | Get the Power Pages **environment ID** (GUID) | Power Platform admin center → Environments → your Power Pages env → Settings → Environment ID |
+| 3 | Import `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_3.zip` (Update) | Solutions → Import. Bind `clm_dataverse` when prompted. |
+| 4 | Create 4 env variables in the imported solution | Solutions → CLMDiscoveryFlowPowerPagesAdmin → + New → More → Environment variable |
+| 4a | `clm_powerpagesenvid` (Text) = env GUID from step 2 | |
+| 4b | `clm_baptenantid` (Text) = your Entra tenant ID, or `common` | |
+| 4c | `clm_bapclientid` (Text) = CLM Discovery app's Application (client) ID | |
+| 4d | `clm_bapclientsecret` (Text) = the SP's client secret value | |
+| 5 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
 
-> **Why two zips?** Solution import refuses circular dependencies. A flow can't import while declaring an unmet dependency on a connection reference whose connector lives in the same solution. Splitting into a connector solution + flow solution lets you create the connection between imports.
+> **Why HTTP actions instead of a custom connector?** The previous custom-connector design required an OAuth2 admin-consent flow against the Power Platform API, which doesn't expose Application-level permissions in the Entra portal picker. Microsoft's BAP API authorizes solely on the **Power Platform Administrator** directory role — no per-permission scope needed. The built-in HTTP action's Active Directory OAuth provider lets us request a token using client_credentials grant at runtime, no consent dance.
+
+> **Security note on `clm_bapclientsecret`**: it's a plain-text env variable, readable by anyone with read on `environmentvariablevalues`. For production deployments, switch this variable to type **SecretText** backed by Azure Key Vault (see Power Platform env variable docs). For dev/pilot, restrict env-variable read at the security-role level.
 
 ### API stability
 The BAP custom domains endpoint is `2022-03-01-preview`. It's the API the Power Platform admin center UI uses today. Practical risk of API changes is low — it's been stable for 3+ years and Microsoft hasn't published a GA replacement. If it ever does change, the connector swagger needs updating; flow logic stays.
