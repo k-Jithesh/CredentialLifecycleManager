@@ -6,8 +6,8 @@ CLM ships two **optional add-on solutions** specifically for Power Pages credent
 
 | Cert type | Where it lives | Add-on that covers it | SP perms required |
 |---|---|---|---|
-| **IdP signing certs** (SAML, OpenID Connect, WS-Federation) | Dataverse table `adx_setting` or `mspp_sitesetting`, rows where name ends in `/Certificate` | **CLMDiscoveryFlow_PowerPages** | App User in Power Pages env with read on Power Pages tables |
-| **Custom domain SSL/TLS certs** (BYO uploaded via Power Platform admin center, like `pp-contoso.example.com` in the example) | Power Platform service backend (NOT in Dataverse) | **CLMDiscoveryFlow_PowerPagesAdmin** | Power Platform Administrator Entra role |
+| **IdP signing certs** (SAML, OpenID Connect, WS-Federation) | Dataverse table `adx_setting` or `mspp_sitesetting`, rows where name ends in `/Certificate` | **CLMDiscoveryFlow_PowerPages** (automated) | App User in Power Pages env with read on Power Pages tables |
+| **Custom domain SSL/TLS certs** (BYO uploaded via Power Platform admin center, like `pp-contoso.example.com` in the example) | Power Platform service backend (NOT in Dataverse) | **`Seed-CLMPortalCerts.ps1`** (manual CSV) — see Add-on 2 below for why API-based discovery was parked | Caller has Create/Update on `clm_credential` |
 | **Microsoft-managed SSL certs** (default Power Pages cert for `*.microsoftcrmportals.com`) | Microsoft manages renewal automatically | Not tracked (nothing to do) | n/a |
 
 ## Solution layout
@@ -20,11 +20,11 @@ CredentialLifecycleManager (schema, security roles)         ← required
    ├── CLMReminderEngine                                    ← required
    ├── CLMApp (views, charts, dashboard)                    ← required
    │
-   ├── CLMDiscoveryFlow_PowerPages                          ← optional add-on
-   │     covers IdP signing certs (Dataverse-side)
-   │
-   └── CLMDiscoveryFlow_PowerPagesAdmin                     ← optional add-on
-         covers BYO custom domain SSL certs (BAP-side)
+   └── CLMDiscoveryFlow_PowerPages                          ← optional add-on
+         covers IdP signing certs (Dataverse-side)
+
+Seed-CLMPortalCerts.ps1 + portal_certs.csv                  ← manual entry for
+                                                              BYO custom domain SSL
 ```
 
 Each add-on is independent. Install only what's needed.
@@ -73,53 +73,66 @@ Modern Power Pages schema (`mspp_*`) takes priority. Three outcomes:
 | `mspp_websites` fails AND `adx_websites` reads OK | `PortalSchema` set to `legacy`, flow uses `adx_*` tables |
 | Both fail | `PortalSchema` stays `unknown`, flow writes a `PowerPagesSchemaUnknown` event and terminates cleanly |
 
-## Add-on 2: CLMDiscoveryFlow_PowerPagesAdmin (BYO SSL certs)
+## Add-on 2: CSV-driven manual entry — `Seed-CLMPortalCerts.ps1` (BYO SSL certs)
 
-### What it does
-1. Daily 02:45 AUS Eastern run
-2. Calls the BAP admin API to list Power Pages sites in the configured env
-3. For each site, fetches custom domain bindings + their attached SSL certs (thumbprint, expirationDate, issuer, type)
-4. Upserts each cert as a `clm_credential` row with:
-   - `clm_externalid = pp:custom:<envId>:<siteId>:<thumbprint>`
-   - `clm_sourcesystem = 100000004` (Power Pages Site)
-   - `clm_credentialtype = 200000001` (Certificate)
-   - **`clm_expirydate` set from API** ✅ — unlike the IdP add-on, BAP returns parsed expiry
-   - `clm_name` = `<site display name> - <hostname>` (e.g. `Contact - pp-contoso.example.com`)
+### Why manual instead of API discovery
 
-This is the add-on that tracks the cert from the example screenshot.
+The original design was an automated discovery flow against `api.bap.microsoft.com` / `api.powerplatform.com`. After significant investigation we parked it because:
 
-### Required setup
+- Microsoft retired the `api.bap.microsoft.com/.../powerpages/sites` endpoint (404 across all supported api-versions).
+- The replacement endpoint at `api.powerplatform.com/powerpages/environments/{envId}/websites` requires the SP to hold an RBAC role assigned via the new Power Platform Authorization API.
+- Even after granting the SP `Power Platform Administrator` Entra role AND `Power Platform Reader` RBAC role, the Power Pages sub-route specifically still returned authorization denied in our tenant.
+- The API surface is in active migration; Microsoft hasn't published a stable supported pattern for SP access to Power Pages cert metadata yet.
 
-| Step | What | Where |
+So instead: **ops maintains a CSV** with one row per BYO SSL cert. The script upserts CLM credential rows from the CSV. Re-run on cert renewal (just update the ExpiryDate column).
+
+### CSV format
+
+```
+SiteName,HostName,Thumbprint,ExpiryDate,OwnerEmail,Environment,Notes
+Contact Portal,pp-contoso.example.com,71B279A778BC0FB04949966D06...,2026-11-29T23:59:59Z,jane.smith@org.com,prod,Customer portal
+Permit Portal,pp-permit.example.com,82C390B889CD1FC15A5BAA77E17...,2027-03-15T23:59:59Z,it-platform@org.com,prod,
+```
+
+| Column | Required | Notes |
 |---|---|---|
-| 1 | Grant Discovery SP the **Power Platform Administrator** Entra role on the **Enterprise application** | Entra admin center → Roles and admins → Power Platform Administrator → + Add assignments → pick the CLM Discovery Enterprise app |
-| 2 | Get the Power Pages **environment ID** (GUID) | Power Platform admin center → Environments → your Power Pages env → Settings → Environment ID |
-| 3 | Import `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_3.zip` (Update) | Solutions → Import. Bind `clm_dataverse` when prompted. |
-| 4 | Create 4 env variables in the imported solution | Solutions → CLMDiscoveryFlowPowerPagesAdmin → + New → More → Environment variable |
-| 4a | `clm_powerpagesenvid` (Text) = env GUID from step 2 | |
-| 4b | `clm_baptenantid` (Text) = your Entra tenant ID, or `common` | |
-| 4c | `clm_bapclientid` (Text) = CLM Discovery app's Application (client) ID | |
-| 4d | `clm_bapclientsecret` (Text) = the SP's client secret value | |
-| 5 | Turn on the flow → Run on demand | Open flow → Turn on → Run |
+| SiteName | ✅ | Power Pages site display name |
+| HostName | ✅ | Custom domain (also used in `clm_externalid`) |
+| Thumbprint | ✅ | Cert thumbprint (used in `clm_externalid` for upsert key) |
+| ExpiryDate | ✅ | ISO 8601 UTC, e.g. `2026-11-29T23:59:59Z` |
+| OwnerEmail | optional | Resolves to systemuser; sets `clm_owneruser` + `clm_ownerlocked = true` so OwnerResolver doesn't auto-reassign |
+| Environment | optional | Free text label (`prod`, `uat`, etc.) |
+| Notes | optional | Appended to the auto-generated note |
 
-> **Why HTTP actions instead of a custom connector?** The previous custom-connector design required an OAuth2 admin-consent flow against the Power Platform API, which doesn't expose Application-level permissions in the Entra portal picker. Microsoft's BAP API authorizes solely on the **Power Platform Administrator** directory role — no per-permission scope needed. The built-in HTTP action's Active Directory OAuth provider lets us request a token using client_credentials grant at runtime, no consent dance.
+Where to find these values in the portal: Power Platform admin center → your env → Sites → click the site → Manage custom domains → see the SSL/TLS certificates section (the screenshot above is exactly this).
 
-> **Security note on `clm_bapclientsecret`**: it's a plain-text env variable, readable by anyone with read on `environmentvariablevalues`. For production deployments, switch this variable to type **SecretText** backed by Azure Key Vault (see Power Platform env variable docs). For dev/pilot, restrict env-variable read at the security-role level.
+### Run
 
-### API stability
-The BAP custom domains endpoint is `2022-03-01-preview`. It's the API the Power Platform admin center UI uses today. Practical risk of API changes is low — it's been stable for 3+ years and Microsoft hasn't published a GA replacement. If it ever does change, the connector swagger needs updating; flow logic stays.
+```powershell
+cd 'C:\path\to\repo'
+
+# Preview - no changes
+pwsh ./Seed-CLMPortalCerts.ps1 -EnvironmentUrl https://<DATAVERSE_HOST> -CsvPath ./portal_certs.csv -WhatIf
+
+# Apply
+pwsh ./Seed-CLMPortalCerts.ps1 -EnvironmentUrl https://<DATAVERSE_HOST> -CsvPath ./portal_certs.csv
+```
+
+### Idempotency
+`clm_externalid` is computed as `pp:manual:<hostname>:<thumbprint>`. Re-runs UPDATE existing rows (same hostname + thumbprint) instead of duplicating. To rotate a cert:
+1. Update the CSV with the new thumbprint + new expiry
+2. Re-run the script
+3. **Old row stays in CLM** with the old thumbprint — it'll get marked Expired when its expiry passes. Delete manually if you want to clean up.
+
+### Required permissions
+Caller of the script needs a Dataverse security role with **Create + Update on `clm_credential`** in the CLM env. The default **System Customizer** role works, or grant the **CLM Platform Ops** role from the schema solution.
+
+### Future: revisit API-based discovery
+When Microsoft publishes stable SP support for Power Pages cert reads (likely via the Authorization RBAC + Power Platform API path documented in [programmability-tutorial-rbac-role-assignment](https://learn.microsoft.com/en-us/power-platform/admin/programmability-tutorial-rbac-role-assignment)), we can replace this CSV approach with an automated flow leg. The schema (`clm_externalid = pp:custom:<envId>:<siteId>:<thumbprint>` vs `pp:manual:...`) leaves room for both to coexist.
 
 ## Multi-environment Power Pages (future v25)
 
-Both add-ons currently target **one** Power Pages env per import. Customers with prod + UAT + dev portals need to either:
-
-| Approach | Setup |
-|---|---|
-| **A. Import the add-on N times into the CLM env** with different connection references (`clm_dataversepowerpages_prod`, `clm_dataversepowerpages_uat`, etc.) | Manual but works today. Add-on solution name needs renaming per copy. |
-| **B. v25 — dynamic enumeration via BAP** | The BAP API enumerates all envs the SP can see. Future Discovery v25 would loop over `clm_sourceenvironment` rows of type `PowerPlatformEnvironment` and run both legs per env. Single import, scales. |
-| **C. HTTP custom connector with dynamic URL** | Flow uses HTTP action with OAuth2 client_credentials against `<envUrl>/api/data/v9.2/...`. No connection refs needed per env. Most complex. |
-
-Recommended path: ship today with **A** (single env per add-on import), build **B** when multi-env demand is concrete.
+Both add-ons currently target **one** Power Pages env per import. Customers with prod + UAT + dev portals should import the IdP add-on N times into the CLM env with different connection references (`clm_dataversepowerpages_prod`, `clm_dataversepowerpages_uat`, etc.) and run `Seed-CLMPortalCerts.ps1` once per env with the appropriate `-EnvironmentUrl`. A future Discovery flow could enumerate envs dynamically once Microsoft publishes stable SP-friendly Power Platform admin APIs.
 
 ## Troubleshooting
 
@@ -127,9 +140,8 @@ Recommended path: ship today with **A** (single env per add-on import), build **
 |---|---|---|
 | IdP add-on creates `PowerPagesSchemaUnknown` event every run | SP doesn't have read on either schema's website table | Check the Application User's security role in the Power Pages env |
 | IdP add-on succeeds but no credentials appear | No `*_sitesetting` rows match `endswith name '/Certificate'`. Tenant may use custom auth providers with different naming. | Inspect site settings manually — adjust the `endswith()` filter if your naming differs |
-| BAP add-on returns 403 on List_Sites | SP missing Power Platform Administrator role | Grant role in Entra admin center → wait 5-10 min for token refresh → re-run |
-| BAP add-on returns 200 but `For_each_Cert` body is empty | Site has no BYO SSL certs (uses default Microsoft-managed cert) | This is expected — Microsoft-managed certs aren't user-visible |
-| Custom domain cert in CLM has wrong expiry | API returned different cert than what's bound (rare edge case with rotation in progress) | Re-run next day — it'll self-correct after rotation completes |
+| `Seed-CLMPortalCerts.ps1` rejects a row | Missing required column or invalid `ExpiryDate` format | CSV must have `SiteName,HostName,Thumbprint,ExpiryDate,OwnerEmail,Environment,Notes` with `ExpiryDate` as ISO-8601 (`2027-03-15T23:59:59Z`) |
+| Seeded custom domain cert has wrong expiry | CSV value out of date vs the cert actually bound in the Power Platform admin center | Re-export from admin center, update CSV, re-run the seeder (it upserts on `clm_externalid`) |
 
 ---
 

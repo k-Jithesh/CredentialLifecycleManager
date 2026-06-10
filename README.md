@@ -53,8 +53,9 @@ A Power Platform solution that **automatically discovers, owns, and reminds on e
 | `CLMOwnerResolver_1_0_0_5.zip` | Owner Resolver flow | 1.0.0.5 |
 | `CLMReminderEngine_1_0_0_7.zip` | Reminder Engine flow (Approvals + email) | 1.0.0.7 |
 | `CLMApp_1_0_0_1.zip` | Model-driven app + 10 views + 4 charts + CLM Operations dashboard | 1.0.0.1 |
-| `CLMDiscoveryFlow_PowerPages_1_0_0_4.zip` | **Optional add-on**: Power Pages IdP signing certs (Dataverse-based, schema-probing) | 1.0.0.2 |
-| `CLMDiscoveryFlow_PowerPagesAdmin_1_0_0_3.zip` | **Optional add-on**: Power Pages BYO custom domain SSL discovery via built-in HTTP action with client_credentials. Single solution, no custom connector. Needs SP with Power Platform Administrator role + 4 env variables. | 1.0.0.3 |
+| `CLMDiscoveryFlow_PowerPages_1_0_0_4.zip` | **Optional add-on**: Power Pages IdP signing certs (Dataverse-based, schema-probing) | 1.0.0.4 |
+| `Seed-CLMPortalCerts.ps1` | **CSV-driven seeder** for Power Pages BYO custom domain SSL certs (manual entry — see Power Pages docs for why API-based discovery was parked) | n/a |
+| `portal_certs.sample.csv` | Sample CSV for `Seed-CLMPortalCerts.ps1` | n/a |
 | `CLMApp_Sitemap.xml` | Paste-in sitemap for the model-driven app | n/a |
 | `connector/`, `docs/` | Source connector swagger + design docs | n/a |
 | `Deploy-CLMSchema.ps1` | Idempotent schema deployment via Dataverse Web API | n/a |

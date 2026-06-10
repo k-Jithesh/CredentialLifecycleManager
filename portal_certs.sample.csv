@@ -1,0 +1,2 @@
+SiteName,HostName,Thumbprint,ExpiryDate,OwnerEmail,Environment,Notes
+Contact Portal,pp-contoso.example.com,71B279A778BC0FB04949966D06,2026-11-29T23:59:59Z,<OPS_EMAIL>,prod,Customer portal SSL cert
